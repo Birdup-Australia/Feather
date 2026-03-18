@@ -49,7 +49,7 @@ module Feather
         confident: confident?,
         region_native: region_native?,
         candidates: @candidates,
-        photography_tips: photography_tips,
+        photography_tips: @photography_tips_loaded ? @photography_tips_data : nil,
         model_id: @model_id,
         input_tokens: @input_tokens,
         output_tokens: @output_tokens,

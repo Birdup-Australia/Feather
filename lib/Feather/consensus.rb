@@ -11,13 +11,10 @@ module Feather
       payload = { models: @models, location: location || @config.location }
 
       Instrumentation.instrument("consensus.feather", payload) do
-        # NOTE: models are queried sequentially. The two LLM calls are independent
-        # and could be parallelised (e.g. with threads) to halve wall-clock latency
-        # if that becomes important for your use case.
         results = @models.map do |model|
           config_for_model = config_with_model(model)
-          Identifier.new(config: config_for_model).identify(image, audio, location: location)
-        end
+          Thread.new { Identifier.new(config: config_for_model).identify(image, audio, location: location) }
+        end.map(&:value)
 
         total_input_tokens  = sum_field(results, :input_tokens)
         total_output_tokens = sum_field(results, :output_tokens)
@@ -36,6 +33,7 @@ module Feather
 
         result = if agree?(results)
           primary = results.first
+          config = @config
           Result.new(
             **shared_attrs,
             common_name: primary.common_name,
@@ -44,7 +42,7 @@ module Feather
             confidence: :high,
             region_native: primary.region_native?,
             model_id: primary.model_id,
-            photography_tips_loader: -> { PhotographyTips.new(species: primary.species, common_name: primary.common_name).fetch },
+            photography_tips_loader: -> { PhotographyTips.new(species: primary.species, common_name: primary.common_name, config: config).fetch },
           )
         else
           agreed_family = results.map(&:family).uniq.length == 1 ? results.first.family : nil

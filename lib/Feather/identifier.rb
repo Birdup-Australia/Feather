@@ -10,12 +10,18 @@ module Feather
       boolean :region_native, description: "Whether this species is native to the given region"
     end
 
+    # Approximate mid-2025 rates (USD per 1M tokens).
+    # Use your provider's dashboard for billing accuracy — these are estimates.
+    PROVIDER_RATES = {
+      anthropic: { input: 3.00, output: 15.00 },
+    }.freeze
+
     def initialize(config: Feather.configuration)
       @config = config
     end
 
     def identify(image = nil, audio = nil, location: nil)
-      raise ArgumentError, "At least one of image or audio must be provided" if image.nil? && audio.nil?
+      raise Feather::ConfigurationError, "At least one of image or audio must be provided" if image.nil? && audio.nil?
 
       effective_location = location || @config.location
       source = derive_source(image, audio)
@@ -34,7 +40,7 @@ module Feather
 
         parsed = response.content
 
-        tips_loader = -> { PhotographyTips.new(species: parsed["species"], common_name: parsed["common_name"]).fetch }
+        tips_loader = -> { PhotographyTips.new(species: parsed["species"], common_name: parsed["common_name"], config: @config).fetch }
 
         result = Result.new(
           common_name: parsed["common_name"],
@@ -70,12 +76,6 @@ module Feather
 
     # Returns a USD cost estimate based on token counts, or nil when the count
     # is unavailable or the configured provider has no rate table defined here.
-    # Use your provider's dashboard for billing accuracy — these are estimates.
-    PROVIDER_RATES = {
-      # Approximate mid-2025 rates (USD per 1M tokens).
-      anthropic: { input: 3.00, output: 15.00 },
-    }.freeze
-
     def compute_cost(input_tokens, output_tokens)
       return nil if input_tokens.nil? || output_tokens.nil?
 
