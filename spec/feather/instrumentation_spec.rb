@@ -24,22 +24,23 @@ RSpec.describe Feather::Instrumentation do
     end
 
     context "when ActiveSupport::Notifications is available" do
-      let(:fake_notifications) do
-        Module.new do
-          @calls = []
+      let(:calls_tracker) { [] }
 
-          def self.instrument(name, payload = {}, &block)
+      let(:fake_notifications) do
+        tracker = calls_tracker
+        Module.new do
+          define_singleton_method(:instrument) do |name, payload = {}, &block|
             result = block.call
-            @calls << { name: name, payload: payload.dup }
+            tracker << { name: name, payload: payload.dup }
             result
           end
 
-          class << self
-            attr_reader :calls
+          define_singleton_method(:calls) do
+            tracker
           end
 
-          def self.last_call
-            @calls.last
+          define_singleton_method(:last_call) do
+            tracker.last
           end
         end
       end

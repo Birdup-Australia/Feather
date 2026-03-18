@@ -9,7 +9,9 @@ Gem::Specification.new do |spec|
   spec.email = ["brandynbb96@gmail.com"]
 
   spec.summary = "Identify birds from photos and audio using LLMs"
-  spec.description = "A Ruby gem for identifying birds from photos and audio using RubyLLM. Adds multi-modal identification, location-aware results, multi-model consensus, and a Rails integration."
+  spec.description = "A Ruby gem for identifying birds from photos and audio using RubyLLM. " \
+                     "Adds multi-modal identification, location-aware results, multi-model consensus, " \
+                     "and a Rails integration."
   spec.homepage = "https://github.com/GoodPie/feather"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
@@ -17,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
+  spec.metadata["rubygems_mfa_required"] = "true"
 
   gemspec = File.basename(__FILE__)
   spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|

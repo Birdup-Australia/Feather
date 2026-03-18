@@ -11,6 +11,7 @@ require_relative "feather/photography_tips"
 require_relative "feather/identifier"
 require_relative "feather/consensus"
 
+# Top-level module for bird identification using LLMs.
 module Feather
   class Error < StandardError; end
   class ConfigurationError < Error; end

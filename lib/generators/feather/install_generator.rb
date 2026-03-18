@@ -5,6 +5,7 @@ require "rails/generators/migration"
 
 module Feather
   module Generators
+    # Rails generator for installing Feather bird identification fields.
     class InstallGenerator < ::Rails::Generators::Base
       include ::Rails::Generators::Migration
 
@@ -13,7 +14,7 @@ module Feather
       desc "Creates a migration to add bird identification fields to your sighting model"
 
       argument :model_name, type: :string, default: "sighting",
-               desc: "Name of the model to add sighting fields to"
+                            desc: "Name of the model to add sighting fields to"
 
       def self.next_migration_number(path)
         next_migration_number = current_migration_number(path) + 1
@@ -23,7 +24,7 @@ module Feather
       def create_migration
         migration_template(
           "migration.rb.tt",
-          "db/migrate/add_feather_fields_to_#{model_name.underscore.pluralize}.rb",
+          "db/migrate/add_feather_fields_to_#{model_name.underscore.pluralize}.rb"
         )
       end
     end

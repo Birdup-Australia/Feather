@@ -16,8 +16,7 @@ RSpec.describe Feather::PhotographyTips do
 
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
-    allow(mock_chat).to receive(:with_schema).and_return(mock_chat)
-    allow(mock_chat).to receive(:ask).and_return(double(content: tips_response))
+    allow(mock_chat).to receive_messages(with_schema: mock_chat, ask: double(content: tips_response))
   end
 
   describe "#fetch" do
@@ -28,8 +27,10 @@ RSpec.describe Feather::PhotographyTips do
 
     it "includes the LLM-returned values" do
       result = tips.fetch
-      expect(result[:time_of_day]).to eq("Early morning, just after sunrise")
-      expect(result[:habitat]).to eq("Dense low scrub near water")
+      aggregate_failures do
+        expect(result[:time_of_day]).to eq("Early morning, just after sunrise")
+        expect(result[:habitat]).to eq("Dense low scrub near water")
+      end
     end
   end
 end

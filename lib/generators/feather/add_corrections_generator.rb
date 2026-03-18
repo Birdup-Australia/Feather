@@ -5,6 +5,7 @@ require "rails/generators/migration"
 
 module Feather
   module Generators
+    # Rails generator for adding user correction fields.
     class AddCorrectionsGenerator < ::Rails::Generators::Base
       include ::Rails::Generators::Migration
 

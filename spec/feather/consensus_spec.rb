@@ -9,7 +9,7 @@ RSpec.describe Feather::Consensus do
       species: "Malurus splendens",
       family: "Maluridae",
       confidence: :high,
-      region_native: true,
+      region_native: true
     )
   end
 
@@ -19,7 +19,7 @@ RSpec.describe Feather::Consensus do
       species: "Gymnorhina tibicen",
       family: "Artamidae",
       confidence: :medium,
-      region_native: true,
+      region_native: true
     )
   end
 
@@ -27,7 +27,7 @@ RSpec.describe Feather::Consensus do
     context "when models agree on species" do
       before do
         call_count = 0
-        allow_any_instance_of(Feather::Identifier).to receive(:identify) do
+        allow_any_instance_of(Feather::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
           call_count += 1
           fairywren_result
         end
@@ -49,7 +49,7 @@ RSpec.describe Feather::Consensus do
 
       before do
         call_count = 0
-        allow_any_instance_of(Feather::Identifier).to receive(:identify) do
+        allow_any_instance_of(Feather::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
           results[call_count].tap { call_count += 1 }
         end
       end
@@ -82,7 +82,7 @@ RSpec.describe Feather::Consensus do
           species: "Malurus splendens",
           family: "Maluridae",
           confidence: :high,
-          region_native: true,
+          region_native: true
         )
       end
 
@@ -92,14 +92,14 @@ RSpec.describe Feather::Consensus do
           species: "Malurus assimilis",
           family: "Maluridae",
           confidence: :medium,
-          region_native: true,
+          region_native: true
         )
       end
 
       before do
         call_count = 0
         results = [splendid, variegated]
-        allow_any_instance_of(Feather::Identifier).to receive(:identify) do
+        allow_any_instance_of(Feather::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
           results[call_count].tap { call_count += 1 }
         end
       end
@@ -115,9 +115,9 @@ RSpec.describe Feather::Consensus do
       end
     end
 
-    context "config isolation" do
+    context "with config isolation" do
       before do
-        allow_any_instance_of(Feather::Identifier).to receive(:identify).and_return(fairywren_result)
+        allow_any_instance_of(Feather::Identifier).to receive(:identify).and_return(fairywren_result) # rubocop:disable RSpec/AnyInstance
       end
 
       it "does not mutate the global configuration model during consensus" do

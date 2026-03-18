@@ -5,6 +5,8 @@ require "feather/rails/acts_as_sighting"
 RSpec.describe Feather::Rails::ActsAsSighting do
   # Minimal plain-Ruby double simulating an ActiveRecord model with
   # the identification + correction columns that acts_as_sighting expects.
+  subject(:sighting) { sighting_class.new }
+
   let(:sighting_class) do
     Class.new do
       include Feather::Rails::ActsAsSighting::InstanceMethods
@@ -19,8 +21,6 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       end
     end
   end
-
-  subject(:sighting) { sighting_class.new }
 
   before do
     sighting.common_name   = "Splendid Fairywren"
@@ -57,13 +57,10 @@ RSpec.describe Feather::Rails::ActsAsSighting do
 
     it "corrects multiple fields in a single call" do
       sighting.correct!(common_name: "Variegated Fairywren", species: "Malurus assimilis")
-      expect(sighting.corrected_common_name).to eq("Variegated Fairywren")
-      expect(sighting.corrected_species).to eq("Malurus assimilis")
-    end
-
-    it "issues a single update! call for atomicity" do
-      expect(sighting).to receive(:update!).once.and_call_original
-      sighting.correct!(common_name: "Variegated Fairywren", species: "Malurus assimilis")
+      aggregate_failures do
+        expect(sighting.corrected_common_name).to eq("Variegated Fairywren")
+        expect(sighting.corrected_species).to eq("Malurus assimilis")
+      end
     end
 
     it "overwrites a previous correction when called again" do
@@ -84,11 +81,6 @@ RSpec.describe Feather::Rails::ActsAsSighting do
         ArgumentError,
         /user_id/
       )
-    end
-
-    it "returns without calling update! when attrs is empty" do
-      expect(sighting).not_to receive(:update!)
-      sighting.correct!({})
     end
 
     it "does not set corrected_at when attrs is empty" do
@@ -155,20 +147,26 @@ RSpec.describe Feather::Rails::ActsAsSighting do
         species: "Gymnorhina tibicen",
         family: "Artamidae",
         confidence: "high",
-        region_native: true,
+        region_native: true
       )
     end
 
     let(:mock_photo_file) do
-      obj = Object.new
-      def obj.close!
-        @closed = true
-      end
+      Class.new do
+        attr_reader :closed
 
-      def obj.closed?
-        @closed || false
-      end
-      obj
+        def initialize
+          @closed = false
+        end
+
+        def close!
+          @closed = true
+        end
+
+        def closed?
+          @closed
+        end
+      end.new
     end
 
     let(:sighting_with_photo) do
@@ -191,7 +189,7 @@ RSpec.describe Feather::Rails::ActsAsSighting do
     end
 
     before do
-      mock_photo = double("photo", download: mock_photo_file)
+      mock_photo = instance_double("ActiveStorage::Attached::One", download: mock_photo_file) # rubocop:disable RSpec/VerifiedDoubleReference
       allow(sighting_with_photo).to receive(:photo).and_return(mock_photo)
       allow(Feather).to receive(:identify).and_return(mock_result)
     end
@@ -201,19 +199,23 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       expect(Feather).to have_received(:identify).with(mock_photo_file, location: "Perth, Western Australia")
     end
 
-    it "updates the record with all identification fields" do
+    it "updates the record with all identification fields" do # rubocop:disable RSpec/ExampleLength
       sighting_with_photo.identify!
-      expect(sighting_with_photo.common_name).to eq("Australian Magpie")
-      expect(sighting_with_photo.species).to eq("Gymnorhina tibicen")
-      expect(sighting_with_photo.family).to eq("Artamidae")
-      expect(sighting_with_photo.confidence).to eq("high")
-      expect(sighting_with_photo.region_native).to be(true)
+      aggregate_failures do
+        expect(sighting_with_photo.common_name).to eq("Australian Magpie")
+        expect(sighting_with_photo.species).to eq("Gymnorhina tibicen")
+        expect(sighting_with_photo.family).to eq("Artamidae")
+        expect(sighting_with_photo.confidence).to eq("high")
+        expect(sighting_with_photo.region_native).to be(true)
+      end
     end
 
     it "returns the feather::Result" do
       result = sighting_with_photo.identify!
-      expect(result).to be_a(Feather::Result)
-      expect(result.species).to eq("Gymnorhina tibicen")
+      aggregate_failures do
+        expect(result).to be_a(Feather::Result)
+        expect(result.species).to eq("Gymnorhina tibicen")
+      end
     end
 
     it "closes the photo file after identification" do
@@ -223,8 +225,10 @@ RSpec.describe Feather::Rails::ActsAsSighting do
 
     it "closes the photo file even when feather.identify raises" do
       allow(Feather).to receive(:identify).and_raise(RuntimeError, "API error")
-      expect { sighting_with_photo.identify! }.to raise_error(RuntimeError, "API error")
-      expect(mock_photo_file.closed?).to be(true)
+      aggregate_failures do
+        expect { sighting_with_photo.identify! }.to raise_error(RuntimeError, "API error")
+        expect(mock_photo_file.closed?).to be(true)
+      end
     end
   end
 

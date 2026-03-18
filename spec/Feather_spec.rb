@@ -7,11 +7,11 @@ RSpec.describe Feather do
 
   describe ".configure" do
     it "yields the configuration object" do
-      Feather.configure do |c|
+      described_class.configure do |c|
         c.location = "Perth, Western Australia"
       end
 
-      expect(Feather.configuration.location).to eq("Perth, Western Australia")
+      expect(described_class.configuration.location).to eq("Perth, Western Australia")
     end
   end
 
@@ -21,7 +21,7 @@ RSpec.describe Feather do
       allow(Feather::Identifier).to receive(:new).and_return(identifier)
       allow(identifier).to receive(:identify).and_return(instance_double(Feather::Result))
 
-      Feather.identify("bird.jpg")
+      described_class.identify("bird.jpg")
 
       expect(identifier).to have_received(:identify).with("bird.jpg", nil, location: nil)
     end
@@ -31,7 +31,7 @@ RSpec.describe Feather do
       allow(Feather::Consensus).to receive(:new).and_return(consensus)
       allow(consensus).to receive(:identify).and_return(instance_double(Feather::Result))
 
-      Feather.identify("bird.jpg", consensus: true)
+      described_class.identify("bird.jpg", consensus: true)
 
       expect(consensus).to have_received(:identify).with("bird.jpg", nil, location: nil)
     end
