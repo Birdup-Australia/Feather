@@ -13,6 +13,8 @@ require_relative "feather/consensus"
 
 module Feather
   class Error < StandardError; end
+  class ConfigurationError < Error; end
+  class IdentificationError < Error; end
 
   class << self
     def configuration
@@ -21,6 +23,10 @@ module Feather
 
     def configure
       yield configuration
+    end
+
+    def reset!
+      @configuration = nil
     end
 
     def identify(image = nil, audio = nil, location: nil, consensus: false)
