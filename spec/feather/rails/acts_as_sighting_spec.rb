@@ -148,6 +148,86 @@ RSpec.describe Feather::Rails::ActsAsSighting do
     end
   end
 
+  describe "#identify!" do
+    let(:mock_result) do
+      Feather::Result.new(
+        common_name: "Australian Magpie",
+        species: "Gymnorhina tibicen",
+        family: "Artamidae",
+        confidence: "high",
+        region_native: true,
+      )
+    end
+
+    let(:mock_photo_file) do
+      obj = Object.new
+      def obj.close!
+        @closed = true
+      end
+
+      def obj.closed?
+        @closed || false
+      end
+      obj
+    end
+
+    let(:sighting_with_photo) do
+      klass = Class.new do
+        include Feather::Rails::ActsAsSighting::InstanceMethods
+
+        attr_accessor :common_name, :species, :family, :confidence, :region_native,
+                      :corrected_common_name, :corrected_species, :corrected_family,
+                      :corrected_confidence, :corrected_region_native, :corrected_at,
+                      :location
+
+        def update!(attrs)
+          attrs.each { |k, v| public_send(:"#{k}=", v) }
+          self
+        end
+      end
+      instance = klass.new
+      instance.location = "Perth, Western Australia"
+      instance
+    end
+
+    before do
+      mock_photo = double("photo", download: mock_photo_file)
+      allow(sighting_with_photo).to receive(:photo).and_return(mock_photo)
+      allow(Feather).to receive(:identify).and_return(mock_result)
+    end
+
+    it "calls Feather.identify with the downloaded photo and location" do
+      sighting_with_photo.identify!
+      expect(Feather).to have_received(:identify).with(mock_photo_file, location: "Perth, Western Australia")
+    end
+
+    it "updates the record with all identification fields" do
+      sighting_with_photo.identify!
+      expect(sighting_with_photo.common_name).to eq("Australian Magpie")
+      expect(sighting_with_photo.species).to eq("Gymnorhina tibicen")
+      expect(sighting_with_photo.family).to eq("Artamidae")
+      expect(sighting_with_photo.confidence).to eq("high")
+      expect(sighting_with_photo.region_native).to be(true)
+    end
+
+    it "returns the Feather::Result" do
+      result = sighting_with_photo.identify!
+      expect(result).to be_a(Feather::Result)
+      expect(result.species).to eq("Gymnorhina tibicen")
+    end
+
+    it "closes the photo file after identification" do
+      sighting_with_photo.identify!
+      expect(mock_photo_file.closed?).to be(true)
+    end
+
+    it "closes the photo file even when Feather.identify raises" do
+      allow(Feather).to receive(:identify).and_raise(RuntimeError, "API error")
+      expect { sighting_with_photo.identify! }.to raise_error(RuntimeError, "API error")
+      expect(mock_photo_file.closed?).to be(true)
+    end
+  end
+
   describe "CORRECTABLE_FIELDS" do
     it "contains exactly the five identification field names" do
       expect(described_class::CORRECTABLE_FIELDS).to contain_exactly(

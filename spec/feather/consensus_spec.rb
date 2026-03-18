@@ -68,6 +68,63 @@ RSpec.describe Feather::Consensus do
         result = consensus.identify("bird.jpg")
         expect(result.species).to be_nil
       end
+
+      it "returns nil for family when families also differ" do
+        result = consensus.identify("bird.jpg")
+        expect(result.family).to be_nil
+      end
+    end
+
+    context "when models disagree on species but agree on family" do
+      let(:splendid) do
+        Feather::Result.new(
+          common_name: "Splendid Fairywren",
+          species: "Malurus splendens",
+          family: "Maluridae",
+          confidence: :high,
+          region_native: true,
+        )
+      end
+
+      let(:variegated) do
+        Feather::Result.new(
+          common_name: "Variegated Fairywren",
+          species: "Malurus assimilis",
+          family: "Maluridae",
+          confidence: :medium,
+          region_native: true,
+        )
+      end
+
+      before do
+        call_count = 0
+        results = [splendid, variegated]
+        allow_any_instance_of(Feather::Identifier).to receive(:identify) do
+          results[call_count].tap { call_count += 1 }
+        end
+      end
+
+      it "sets family to the agreed family" do
+        result = consensus.identify("bird.jpg")
+        expect(result.family).to eq("Maluridae")
+      end
+
+      it "is still low confidence" do
+        result = consensus.identify("bird.jpg")
+        expect(result.confidence).to eq(:low)
+      end
+    end
+
+    context "config isolation" do
+      before do
+        allow_any_instance_of(Feather::Identifier).to receive(:identify).and_return(fairywren_result)
+      end
+
+      it "does not mutate the global configuration model during consensus" do
+        original_model = Feather.configuration.model
+        consensus.identify("bird.jpg")
+        expect(Feather.configuration.model).to eq(original_model)
+      end
     end
   end
 end

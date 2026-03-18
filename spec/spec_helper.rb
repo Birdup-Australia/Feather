@@ -9,6 +9,8 @@ require "feather"
 require "vcr"
 require "webmock/rspec"
 
+Dir[File.join(__dir__, "support", "**", "*.rb")].each { |f| require f }
+
 VCR.configure do |config|
   config.cassette_library_dir = "spec/cassettes"
   config.hook_into :webmock
@@ -25,7 +27,9 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
+  config.include Feather::SpecHelpers
+
   config.before do
-    Feather.instance_variable_set(:@configuration, nil)
+    Feather.reset!
   end
 end

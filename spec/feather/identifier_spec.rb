@@ -30,6 +30,17 @@ RSpec.describe Feather::Identifier do
   end
 
   describe "#identify" do
+    it "raises Feather::ConfigurationError when both image and audio are nil" do
+      expect { identifier.identify }.to raise_error(
+        Feather::ConfigurationError,
+        /At least one of image or audio must be provided/
+      )
+    end
+
+    it "raises Feather::ConfigurationError when both are explicitly nil" do
+      expect { identifier.identify(nil, nil) }.to raise_error(Feather::ConfigurationError)
+    end
+
     it "returns a Result" do
       result = identifier.identify("bird.jpg")
       expect(result).to be_a(Feather::Result)
