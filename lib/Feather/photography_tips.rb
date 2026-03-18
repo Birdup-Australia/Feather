@@ -9,14 +9,15 @@ module Feather
       string :habitat, description: "Where to find this species for photography"
     end
 
-    def initialize(species:, common_name:)
+    def initialize(species:, common_name:, config: Feather.configuration)
       @species = species
       @common_name = common_name
+      @config = config
     end
 
     def fetch
       Instrumentation.instrument("photography_tips.feather", { species: @species, common_name: @common_name }) do
-        chat = RubyLLM.chat(model: "claude-haiku-4")
+        chat = RubyLLM.chat(model: @config.tips_model)
         chat.with_schema(SCHEMA)
         parsed = chat.ask(prompt).content
         {
