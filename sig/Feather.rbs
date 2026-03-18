@@ -1,4 +1,91 @@
 module Feather
   VERSION: String
-  # See the writing guide of rbs: https://github.com/ruby/rbs#guides
+
+  class Error < StandardError
+  end
+
+  class ConfigurationError < Error
+  end
+
+  class IdentificationError < Error
+  end
+
+  def self.configuration: () -> Configuration
+  def self.configure: () { (Configuration) -> void } -> void
+  def self.reset!: () -> nil
+  def self.identify: (?String? image, ?String? audio, ?location: String?, ?consensus: bool) -> Result
+
+  class Configuration
+    attr_accessor provider: Symbol
+    attr_accessor model: String
+    attr_accessor location: String?
+    attr_accessor consensus_models: Array[String]
+    attr_accessor tips_model: String
+
+    def initialize: () -> void
+    def initialize_copy: (Configuration source) -> void
+  end
+
+  class Result
+    attr_reader common_name: String?
+    attr_reader species: String?
+    attr_reader family: String?
+    attr_reader confidence: Symbol?
+    attr_reader region_native: bool?
+    attr_reader candidates: Array[Result]
+    attr_reader input_tokens: Integer?
+    attr_reader output_tokens: Integer?
+    attr_reader cost: Float?
+    attr_reader model_id: String?
+    attr_reader duration_ms: Integer?
+    attr_reader source: Symbol?
+    attr_reader consensus_models: Array[String]?
+
+    def initialize: (Hash[Symbol, untyped] attrs) -> void
+    def confident?: () -> bool
+    def region_native?: () -> bool
+    def photography_tips: () -> Hash[Symbol, String]?
+    def to_h: () -> Hash[Symbol, untyped]
+  end
+
+  class Identifier
+    SCHEMA: untyped
+    PROVIDER_RATES: Hash[Symbol, Hash[Symbol, Float]]
+
+    def initialize: (?config: Configuration) -> void
+    def identify: (?String? image, ?String? audio, ?location: String?) -> Result
+  end
+
+  class Consensus
+    def initialize: (?config: Configuration) -> void
+    def identify: (?String? image, ?String? audio, ?location: String?) -> Result
+  end
+
+  class PhotographyTips
+    SCHEMA: untyped
+
+    def initialize: (species: String, common_name: String, ?config: Configuration) -> void
+    def fetch: () -> Hash[Symbol, String]
+  end
+
+  module Instrumentation
+    def self.instrument: (String event_name, ?Hash[Symbol, untyped] payload) { () -> untyped } -> untyped
+  end
+
+  module Rails
+    module ActsAsSighting
+      CORRECTABLE_FIELDS: Array[Symbol]
+
+      module ClassMethods
+        def acts_as_sighting: () -> void
+      end
+
+      module InstanceMethods
+        def identify!: () -> Result
+        def correct!: (Hash[Symbol | String, untyped] attrs) -> void
+        def corrected?: () -> bool
+        def correction_delta: () -> Hash[Symbol, Hash[Symbol, untyped]]
+      end
+    end
+  end
 end
