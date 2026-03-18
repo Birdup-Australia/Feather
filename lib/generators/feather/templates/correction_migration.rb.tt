@@ -1,4 +1,4 @@
-class AddFeatherCorrectionFieldsTo<%= model_name.camelize.pluralize %> < ActiveRecord::Migration[7.0]
+class AddFeatherCorrectionFieldsTo<%= model_name.camelize.pluralize %> < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
   def change
     add_column :<%= model_name.underscore.pluralize %>, :corrected_common_name, :string
     add_column :<%= model_name.underscore.pluralize %>, :corrected_species, :string
