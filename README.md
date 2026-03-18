@@ -180,6 +180,22 @@ bin/console         # Interactive console with gem loaded
 
 Tests use VCR + WebMock to record and replay LLM responses — no API keys are required to run the test suite.
 
+## Thread Safety
+
+`Feather.configuration` is a process-level singleton initialised lazily with `||=`. Under MRI Ruby, the Global VM Lock (GVL) makes this safe in practice. If you use JRuby or Ractors, initialise configuration eagerly at boot time before spawning threads:
+
+```ruby
+# In an initialiser or boot file — before any threads are created
+Feather.configure do |c|
+  c.provider = :anthropic
+  c.model    = "claude-sonnet-4"
+end
+```
+
+`Feather.identify` is stateless per-call — each invocation constructs its own `Identifier` or `Consensus` instance and `RubyLLM::Chat` session. Concurrent calls are safe.
+
+`Feather::Consensus` parallelises model calls using Ruby threads (`Thread.new`), so two LLM requests run concurrently and the total wall-clock time is roughly that of the slower model, not the sum of both.
+
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/GoodPie/feather.
