@@ -2,11 +2,11 @@
 
 module Feather
   class PhotographyTips
-    SCHEMA = RubyLLM::Schema.define do
-      property :time_of_day, type: :string, description: "Best time of day to photograph this species"
-      property :approach, type: :string, description: "How to approach without disturbing the bird"
-      property :settings, type: :string, description: "Recommended camera settings (shutter speed, aperture, ISO)"
-      property :habitat, type: :string, description: "Where to find this species for photography"
+    SCHEMA = RubyLLM::Schema.create do
+      string :time_of_day, description: "Best time of day to photograph this species"
+      string :approach, description: "How to approach without disturbing the bird"
+      string :settings, description: "Recommended camera settings (shutter speed, aperture, ISO)"
+      string :habitat, description: "Where to find this species for photography"
     end
 
     def initialize(species:, common_name:)
@@ -15,14 +15,17 @@ module Feather
     end
 
     def fetch
-      response = RubyLLM.chat(model: "claude-haiku-4").ask(prompt)
-      parsed = response.structured(SCHEMA)
-      {
-        time_of_day: parsed.time_of_day,
-        approach: parsed.approach,
-        settings: parsed.settings,
-        habitat: parsed.habitat,
-      }
+      Instrumentation.instrument("photography_tips.feather", { species: @species, common_name: @common_name }) do
+        chat = RubyLLM.chat(model: "claude-haiku-4")
+        chat.with_schema(SCHEMA)
+        parsed = chat.ask(prompt).content
+        {
+          time_of_day: parsed["time_of_day"],
+          approach: parsed["approach"],
+          settings: parsed["settings"],
+          habitat: parsed["habitat"],
+        }
+      end
     end
 
     private

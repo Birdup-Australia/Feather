@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
+require "ruby_llm/schema"
 
 require_relative "feather/version"
 require_relative "feather/configuration"
+require_relative "feather/instrumentation"
 require_relative "feather/result"
 require_relative "feather/photography_tips"
 require_relative "feather/identifier"

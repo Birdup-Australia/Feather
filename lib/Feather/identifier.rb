@@ -2,12 +2,12 @@
 
 module Feather
   class Identifier
-    SCHEMA = RubyLLM::Schema.define do
-      property :common_name, type: :string, description: "Common name of the bird"
-      property :species, type: :string, description: "Scientific species name (Genus species)"
-      property :family, type: :string, description: "Bird family name"
-      property :confidence, type: :string, enum: ["high", "medium", "low"], description: "Identification confidence"
-      property :region_native, type: :boolean, description: "Whether this species is native to the given region"
+    SCHEMA = RubyLLM::Schema.create do
+      string :common_name, description: "Common name of the bird"
+      string :species, description: "Scientific species name (Genus species)"
+      string :family, description: "Bird family name"
+      string :confidence, description: "Identification confidence: high, medium, or low"
+      boolean :region_native, description: "Whether this species is native to the given region"
     end
 
     def initialize(config: Feather.configuration)
@@ -18,23 +18,30 @@ module Feather
       raise ArgumentError, "At least one of image or audio must be provided" if image.nil? && audio.nil?
 
       effective_location = location || @config.location
-      chat = RubyLLM.chat(model: @config.model)
-      chat.with_instructions(system_prompt(effective_location))
+      payload = { model: @config.model, location: effective_location, has_image: !image.nil?, has_audio: !audio.nil? }
 
-      message = build_message(image, audio)
-      response = chat.ask(message)
-      parsed = response.structured(SCHEMA)
+      Instrumentation.instrument("identify.feather", payload) do
+        chat = RubyLLM.chat(model: @config.model)
+        chat.with_instructions(system_prompt(effective_location))
 
-      tips_loader = -> { PhotographyTips.new(species: parsed.species, common_name: parsed.common_name).fetch }
+        chat.with_schema(SCHEMA)
+        message = build_message(image, audio)
+        parsed = chat.ask(message).content
 
-      Result.new(
-        common_name: parsed.common_name,
-        species: parsed.species,
-        family: parsed.family,
-        confidence: parsed.confidence,
-        region_native: parsed.region_native,
-        photography_tips_loader: tips_loader,
-      )
+        tips_loader = -> { PhotographyTips.new(species: parsed["species"], common_name: parsed["common_name"]).fetch }
+
+        result = Result.new(
+          common_name: parsed["common_name"],
+          species: parsed["species"],
+          family: parsed["family"],
+          confidence: parsed["confidence"],
+          region_native: parsed["region_native"],
+          photography_tips_loader: tips_loader,
+        )
+
+        payload[:result] = result
+        result
+      end
     end
 
     private

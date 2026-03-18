@@ -4,13 +4,13 @@ RSpec.describe Feather::Identifier do
   let(:identifier) { described_class.new }
 
   let(:mock_response) do
-    double(
-      common_name: "Splendid Fairywren",
-      species: "Malurus splendens",
-      family: "Maluridae",
-      confidence: "high",
-      region_native: true,
-    )
+    {
+      "common_name" => "Splendid Fairywren",
+      "species" => "Malurus splendens",
+      "family" => "Maluridae",
+      "confidence" => "high",
+      "region_native" => true
+    }
   end
 
   let(:mock_chat) { instance_double(RubyLLM::Chat) }
@@ -18,7 +18,8 @@ RSpec.describe Feather::Identifier do
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
     allow(mock_chat).to receive(:with_instructions).and_return(mock_chat)
-    allow(mock_chat).to receive(:ask).and_return(double(structured: mock_response))
+    allow(mock_chat).to receive(:with_schema).and_return(mock_chat)
+    allow(mock_chat).to receive(:ask).and_return(double(content: mock_response))
   end
 
   describe "#identify" do
@@ -44,7 +45,7 @@ RSpec.describe Feather::Identifier do
       identifier.identify("bird.jpg")
 
       expect(mock_chat).to have_received(:with_instructions).with(
-        include("Perth, Western Australia"),
+        include("Perth, Western Australia")
       )
     end
 
@@ -56,7 +57,7 @@ RSpec.describe Feather::Identifier do
       identifier.identify("bird.jpg", location: "Brisbane")
 
       expect(mock_chat).to have_received(:with_instructions).with(
-        include("Brisbane"),
+        include("Brisbane")
       )
     end
 
