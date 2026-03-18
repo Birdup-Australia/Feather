@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    feather (0.2.0)
+    feather-ai (0.2.0)
       ruby_llm (~> 1.0)
 
 GEM
@@ -140,7 +140,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  feather!
+  feather-ai!
   irb
   rake (~> 13.0)
   rspec (~> 3.0)

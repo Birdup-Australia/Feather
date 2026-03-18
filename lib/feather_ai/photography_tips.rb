@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Feather
+module FeatherAi
   # Generates photography tips for identified bird species.
   class PhotographyTips
     SCHEMA = RubyLLM::Schema.create do
@@ -10,14 +10,14 @@ module Feather
       string :habitat, description: "Where to find this species for photography"
     end
 
-    def initialize(species:, common_name:, config: Feather.configuration)
+    def initialize(species:, common_name:, config: FeatherAi.configuration)
       @species = species
       @common_name = common_name
       @config = config
     end
 
     def fetch
-      Instrumentation.instrument("photography_tips.feather", instrumentation_payload) do
+      Instrumentation.instrument("photography_tips.feather_ai", instrumentation_payload) do
         parsed = fetch_from_llm
         build_tips_hash(parsed)
       end

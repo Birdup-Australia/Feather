@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Feather
+module FeatherAi
   # Immutable value object wrapping all identification output.
   class Result
     attr_reader :common_name, :species, :family, :confidence, :region_native, :candidates,

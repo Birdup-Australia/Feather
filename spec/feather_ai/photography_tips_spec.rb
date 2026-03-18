@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe Feather::PhotographyTips do
+RSpec.describe FeatherAi::PhotographyTips do
   let(:tips) { described_class.new(species: "Malurus splendens", common_name: "Splendid Fairywren") }
 
   let(:tips_response) do

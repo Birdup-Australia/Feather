@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Feather is a Ruby gem for identifying birds from photos and audio using RubyLLM. It adds multi-modal identification, location-aware results, multi-model consensus, and a Rails integration on top of RubyLLM.
+FeatherAi is a Ruby gem for identifying birds from photos and audio using RubyLLM. It adds multi-modal identification, location-aware results, multi-model consensus, and a Rails integration on top of RubyLLM.
 
 ## Commands
 
@@ -16,10 +16,10 @@ bin/setup
 bundle exec rspec
 
 # Run a single test file
-bundle exec rspec spec/feather/identifier_spec.rb
+bundle exec rspec spec/feather_ai/identifier_spec.rb
 
 # Run a single example by line number
-bundle exec rspec spec/feather/identifier_spec.rb:15
+bundle exec rspec spec/feather_ai/identifier_spec.rb:15
 
 # Lint
 bundle exec rubocop
@@ -42,24 +42,24 @@ bundle exec rake release
 
 ## Architecture
 
-The gem's only runtime dependency is `ruby_llm`. All classes live under the `Feather` module in `lib/feather/`.
+The gem's only runtime dependency is `ruby_llm`. All classes live under the `FeatherAi` module in `lib/feather_ai/`.
 
 ### Data Flow
 
-`Feather.identify(image, audio, location:, consensus:)` is the top-level entry point defined in `lib/feather.rb`. It delegates to:
+`FeatherAi.identify(image, audio, location:, consensus:)` is the top-level entry point defined in `lib/feather_ai.rb`. It delegates to:
 
-1. **Identifier** (`lib/feather/identifier.rb`) — Core identification logic. Uses RubyLLM's vision for images and `RubyLLM.transcribe` for audio. When both inputs are provided, they're combined into a single multi-modal prompt. Uses `RubyLLM::Schema` for structured output so results are always clean `Result` objects, not raw LLM prose.
+1. **Identifier** (`lib/feather_ai/identifier.rb`) — Core identification logic. Uses RubyLLM's vision for images and `RubyLLM.transcribe` for audio. When both inputs are provided, they're combined into a single multi-modal prompt. Uses `RubyLLM::Schema` for structured output so results are always clean `Result` objects, not raw LLM prose.
 
-2. **Consensus** (`lib/feather/consensus.rb`) — When `consensus: true`, runs identification through two configurable models independently. If they agree on species, returns `confident: true`. If they disagree, returns both as `candidates` with uncertain confidence.
+2. **Consensus** (`lib/feather_ai/consensus.rb`) — When `consensus: true`, runs identification through two configurable models independently. If they agree on species, returns `confident: true`. If they disagree, returns both as `candidates` with uncertain confidence.
 
-3. **Result** (`lib/feather/result.rb`) — Immutable value object wrapping all identification output. Exposes `common_name`, `species`, `family`, `confidence` (`:high`/`:medium`/`:low`), `confident?`, `region_native?`, `candidates`, `photography_tips`, and `to_h`. Photography tips are lazy-loaded via a second cheap LLM call only when accessed.
+3. **Result** (`lib/feather_ai/result.rb`) — Immutable value object wrapping all identification output. Exposes `common_name`, `species`, `family`, `confidence` (`:high`/`:medium`/`:low`), `confident?`, `region_native?`, `candidates`, `photography_tips`, and `to_h`. Photography tips are lazy-loaded via a second cheap LLM call only when accessed.
 
-4. **PhotographyTips** (`lib/feather/photography_tips.rb`) — Separate LLM call (small model) returning structured shooting advice for the identified species. Only invoked when `result.photography_tips` is called.
+4. **PhotographyTips** (`lib/feather_ai/photography_tips.rb`) — Separate LLM call (small model) returning structured shooting advice for the identified species. Only invoked when `result.photography_tips` is called.
 
 ### Configuration
 
 ```ruby
-Feather.configure do |c|
+FeatherAi.configure do |c|
   c.provider  = :anthropic
   c.location  = "Perth, Western Australia"  # biases results to local species
   c.model     = "claude-sonnet-4"
@@ -70,7 +70,7 @@ Location can be set globally or per-call via `location:` keyword. It's injected 
 
 ### Rails Integration
 
-`lib/feather/rails/` contains a Railtie and `acts_as_sighting` mixin. When included in an ActiveRecord model, it expects `photo` (ActiveStorage) and `location` (string) attributes, and adds an `identify!` method that populates species fields on the record. A generator (`bin/rails generate feather:install`) scaffolds the migration.
+`lib/feather_ai/rails/` contains a Railtie and `acts_as_sighting` mixin. When included in an ActiveRecord model, it expects `photo` (ActiveStorage) and `location` (string) attributes, and adds an `identify!` method that populates species fields on the record. A generator (`bin/rails generate feather_ai:install`) scaffolds the migration.
 
 ## Code Style
 

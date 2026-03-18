@@ -3,7 +3,7 @@
 require "rails/generators"
 require "rails/generators/migration"
 
-module Feather
+module FeatherAi
   module Generators
     # Rails generator for adding user correction fields.
     class AddCorrectionsGenerator < ::Rails::Generators::Base
@@ -24,7 +24,7 @@ module Feather
       def create_migration
         migration_template(
           "correction_migration.rb.tt",
-          "db/migrate/add_feather_correction_fields_to_#{model_name.underscore.pluralize}.rb"
+          "db/migrate/add_feather_ai_correction_fields_to_#{model_name.underscore.pluralize}.rb"
         )
       end
     end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative "lib/feather/version"
+require_relative "lib/feather_ai/version"
 
 Gem::Specification.new do |spec|
-  spec.name = "feather"
-  spec.version = Feather::VERSION
+  spec.name = "feather-ai"
+  spec.version = FeatherAi::VERSION
   spec.authors = ["Brandyn Britton"]
   spec.email = ["brandynbb96@gmail.com"]
 

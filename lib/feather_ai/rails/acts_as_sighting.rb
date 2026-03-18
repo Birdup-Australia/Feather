@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Feather
+module FeatherAi
   module Rails
     module ActsAsSighting
       CORRECTABLE_FIELDS = %i[common_name species family confidence region_native].freeze
@@ -16,7 +16,7 @@ module Feather
       module InstanceMethods
         def identify!
           photo_file = photo.download
-          result = Feather.identify(photo_file, location: location)
+          result = FeatherAi.identify(photo_file, location: location)
           update_from_result!(result)
           result
         ensure

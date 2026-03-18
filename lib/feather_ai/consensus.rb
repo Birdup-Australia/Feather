@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-module Feather
+module FeatherAi
   # Multi-model consensus identification to improve accuracy.
   class Consensus
-    def initialize(config: Feather.configuration)
+    def initialize(config: FeatherAi.configuration)
       @config = config
       @models = config.consensus_models
     end
@@ -11,7 +11,7 @@ module Feather
     def identify(image = nil, audio = nil, location: nil)
       payload = { models: @models, location: location || @config.location }
 
-      Instrumentation.instrument("consensus.feather", payload) do
+      Instrumentation.instrument("consensus.feather_ai", payload) do
         results = fetch_results_from_models(image, audio, location)
         shared_attrs = aggregate_metrics(results)
         result = build_consensus_result(results, shared_attrs)

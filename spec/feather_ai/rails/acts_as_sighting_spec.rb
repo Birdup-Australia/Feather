@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require "feather/rails/acts_as_sighting"
+require "feather_ai/rails/acts_as_sighting"
 
-RSpec.describe Feather::Rails::ActsAsSighting do
+RSpec.describe FeatherAi::Rails::ActsAsSighting do
   # Minimal plain-Ruby double simulating an ActiveRecord model with
   # the identification + correction columns that acts_as_sighting expects.
   subject(:sighting) { sighting_class.new }
 
   let(:sighting_class) do
     Class.new do
-      include Feather::Rails::ActsAsSighting::InstanceMethods
+      include FeatherAi::Rails::ActsAsSighting::InstanceMethods
 
       attr_accessor :common_name, :species, :family, :confidence, :region_native,
                     :corrected_common_name, :corrected_species, :corrected_family,
@@ -142,7 +142,7 @@ RSpec.describe Feather::Rails::ActsAsSighting do
 
   describe "#identify!" do
     let(:mock_result) do
-      Feather::Result.new(
+      FeatherAi::Result.new(
         common_name: "Australian Magpie",
         species: "Gymnorhina tibicen",
         family: "Artamidae",
@@ -171,7 +171,7 @@ RSpec.describe Feather::Rails::ActsAsSighting do
 
     let(:sighting_with_photo) do
       klass = Class.new do
-        include Feather::Rails::ActsAsSighting::InstanceMethods
+        include FeatherAi::Rails::ActsAsSighting::InstanceMethods
 
         attr_accessor :common_name, :species, :family, :confidence, :region_native,
                       :corrected_common_name, :corrected_species, :corrected_family,
@@ -191,12 +191,12 @@ RSpec.describe Feather::Rails::ActsAsSighting do
     before do
       mock_photo = instance_double("ActiveStorage::Attached::One", download: mock_photo_file) # rubocop:disable RSpec/VerifiedDoubleReference
       allow(sighting_with_photo).to receive(:photo).and_return(mock_photo)
-      allow(Feather).to receive(:identify).and_return(mock_result)
+      allow(FeatherAi).to receive(:identify).and_return(mock_result)
     end
 
-    it "calls feather.identify with the downloaded photo and location" do
+    it "calls FeatherAi.identify with the downloaded photo and location" do
       sighting_with_photo.identify!
-      expect(Feather).to have_received(:identify).with(mock_photo_file, location: "Perth, Western Australia")
+      expect(FeatherAi).to have_received(:identify).with(mock_photo_file, location: "Perth, Western Australia")
     end
 
     it "updates the record with all identification fields" do # rubocop:disable RSpec/ExampleLength
@@ -210,10 +210,10 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       end
     end
 
-    it "returns the feather::Result" do
+    it "returns the FeatherAi::Result" do
       result = sighting_with_photo.identify!
       aggregate_failures do
-        expect(result).to be_a(Feather::Result)
+        expect(result).to be_a(FeatherAi::Result)
         expect(result.species).to eq("Gymnorhina tibicen")
       end
     end
@@ -223,8 +223,8 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       expect(mock_photo_file.closed?).to be(true)
     end
 
-    it "closes the photo file even when feather.identify raises" do
-      allow(Feather).to receive(:identify).and_raise(RuntimeError, "API error")
+    it "closes the photo file even when FeatherAi.identify raises" do
+      allow(FeatherAi).to receive(:identify).and_raise(RuntimeError, "API error")
       aggregate_failures do
         expect { sighting_with_photo.identify! }.to raise_error(RuntimeError, "API error")
         expect(mock_photo_file.closed?).to be(true)

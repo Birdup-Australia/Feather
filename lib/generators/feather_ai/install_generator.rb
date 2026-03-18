@@ -3,9 +3,9 @@
 require "rails/generators"
 require "rails/generators/migration"
 
-module Feather
+module FeatherAi
   module Generators
-    # Rails generator for installing Feather bird identification fields.
+    # Rails generator for installing FeatherAi bird identification fields.
     class InstallGenerator < ::Rails::Generators::Base
       include ::Rails::Generators::Migration
 
@@ -24,7 +24,7 @@ module Feather
       def create_migration
         migration_template(
           "migration.rb.tt",
-          "db/migrate/add_feather_fields_to_#{model_name.underscore.pluralize}.rb"
+          "db/migrate/add_feather_ai_fields_to_#{model_name.underscore.pluralize}.rb"
         )
       end
     end

@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-RSpec.describe Feather::Consensus do
+RSpec.describe FeatherAi::Consensus do
   let(:consensus) { described_class.new }
 
   let(:fairywren_result) do
-    Feather::Result.new(
+    FeatherAi::Result.new(
       common_name: "Splendid Fairywren",
       species: "Malurus splendens",
       family: "Maluridae",
@@ -14,7 +14,7 @@ RSpec.describe Feather::Consensus do
   end
 
   let(:magpie_result) do
-    Feather::Result.new(
+    FeatherAi::Result.new(
       common_name: "Australian Magpie",
       species: "Gymnorhina tibicen",
       family: "Artamidae",
@@ -27,7 +27,7 @@ RSpec.describe Feather::Consensus do
     context "when models agree on species" do
       before do
         call_count = 0
-        allow_any_instance_of(Feather::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
+        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
           call_count += 1
           fairywren_result
         end
@@ -49,7 +49,7 @@ RSpec.describe Feather::Consensus do
 
       before do
         call_count = 0
-        allow_any_instance_of(Feather::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
+        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
           results[call_count].tap { call_count += 1 }
         end
       end
@@ -77,7 +77,7 @@ RSpec.describe Feather::Consensus do
 
     context "when models disagree on species but agree on family" do
       let(:splendid) do
-        Feather::Result.new(
+        FeatherAi::Result.new(
           common_name: "Splendid Fairywren",
           species: "Malurus splendens",
           family: "Maluridae",
@@ -87,7 +87,7 @@ RSpec.describe Feather::Consensus do
       end
 
       let(:variegated) do
-        Feather::Result.new(
+        FeatherAi::Result.new(
           common_name: "Variegated Fairywren",
           species: "Malurus assimilis",
           family: "Maluridae",
@@ -99,7 +99,7 @@ RSpec.describe Feather::Consensus do
       before do
         call_count = 0
         results = [splendid, variegated]
-        allow_any_instance_of(Feather::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
+        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
           results[call_count].tap { call_count += 1 }
         end
       end
@@ -117,13 +117,13 @@ RSpec.describe Feather::Consensus do
 
     context "with config isolation" do
       before do
-        allow_any_instance_of(Feather::Identifier).to receive(:identify).and_return(fairywren_result) # rubocop:disable RSpec/AnyInstance
+        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify).and_return(fairywren_result) # rubocop:disable RSpec/AnyInstance
       end
 
       it "does not mutate the global configuration model during consensus" do
-        original_model = Feather.configuration.model
+        original_model = FeatherAi.configuration.model
         consensus.identify("bird.jpg")
-        expect(Feather.configuration.model).to eq(original_model)
+        expect(FeatherAi.configuration.model).to eq(original_model)
       end
     end
   end

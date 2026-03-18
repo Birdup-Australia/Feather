@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe Feather::Identifier do
+RSpec.describe FeatherAi::Identifier do
   let(:identifier) { described_class.new }
 
   let(:mock_response) do
@@ -28,18 +28,18 @@ RSpec.describe Feather::Identifier do
   describe "#identify" do
     it "raises feather::ConfigurationError when both image and audio are nil" do
       expect { identifier.identify }.to raise_error(
-        Feather::ConfigurationError,
+        FeatherAi::ConfigurationError,
         /At least one of image or audio must be provided/
       )
     end
 
     it "raises feather::ConfigurationError when both are explicitly nil" do
-      expect { identifier.identify(nil, nil) }.to raise_error(Feather::ConfigurationError)
+      expect { identifier.identify(nil, nil) }.to raise_error(FeatherAi::ConfigurationError)
     end
 
     it "returns a Result" do
       result = identifier.identify("bird.jpg")
-      expect(result).to be_a(Feather::Result)
+      expect(result).to be_a(FeatherAi::Result)
     end
 
     it "populates result fields from the LLM response" do # rubocop:disable RSpec/ExampleLength
@@ -54,7 +54,7 @@ RSpec.describe Feather::Identifier do
     end
 
     it "includes the configured location in the system prompt when set" do
-      config = Feather::Configuration.new
+      config = FeatherAi::Configuration.new
       config.location = "Perth, Western Australia"
       identifier = described_class.new(config: config)
       identifier.identify("bird.jpg")
@@ -62,7 +62,7 @@ RSpec.describe Feather::Identifier do
     end
 
     it "overrides the configured location with a per-call location" do
-      config = Feather::Configuration.new
+      config = FeatherAi::Configuration.new
       config.location = "Sydney"
       identifier = described_class.new(config: config)
       identifier.identify("bird.jpg", location: "Brisbane")
@@ -107,7 +107,7 @@ RSpec.describe Feather::Identifier do
     end
 
     it "returns nil cost for a non-anthropic provider" do
-      config = Feather::Configuration.new
+      config = FeatherAi::Configuration.new
       config.provider = :openai
       result = described_class.new(config: config).identify("bird.jpg")
       expect(result.cost).to be_nil

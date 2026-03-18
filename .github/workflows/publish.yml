@@ -1,0 +1,19 @@
+name: Publish Gem
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write   # Required for trusted publishing OIDC
+      contents: write   # Required for release-gem action
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - uses: rubygems/release-gem@v1

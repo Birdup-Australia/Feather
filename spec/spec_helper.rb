@@ -5,7 +5,7 @@ SimpleCov.start do
   add_filter "/spec/"
 end
 
-require "feather"
+require "feather_ai"
 require "vcr"
 require "webmock/rspec"
 
@@ -27,9 +27,9 @@ RSpec.configure do |config|
     c.syntax = :expect
   end
 
-  config.include Feather::SpecHelpers
+  config.include FeatherAi::SpecHelpers
 
   config.before do
-    Feather.reset!
+    FeatherAi.reset!
   end
 end

@@ -3,16 +3,16 @@
 require "ruby_llm"
 require "ruby_llm/schema"
 
-require_relative "feather/version"
-require_relative "feather/configuration"
-require_relative "feather/instrumentation"
-require_relative "feather/result"
-require_relative "feather/photography_tips"
-require_relative "feather/identifier"
-require_relative "feather/consensus"
+require_relative "feather_ai/version"
+require_relative "feather_ai/configuration"
+require_relative "feather_ai/instrumentation"
+require_relative "feather_ai/result"
+require_relative "feather_ai/photography_tips"
+require_relative "feather_ai/identifier"
+require_relative "feather_ai/consensus"
 
 # Top-level module for bird identification using LLMs.
-module Feather
+module FeatherAi
   class Error < StandardError; end
   class ConfigurationError < Error; end
   class IdentificationError < Error; end

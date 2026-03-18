@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Feather
+module FeatherAi
   module SpecHelpers
     DEFAULT_RESULT_ATTRS = {
       common_name: "Splendid Fairywren",
@@ -17,7 +17,7 @@ module Feather
     }.freeze
 
     def build_result(overrides = {})
-      Feather::Result.new(DEFAULT_RESULT_ATTRS.merge(overrides))
+      FeatherAi::Result.new(DEFAULT_RESULT_ATTRS.merge(overrides))
     end
   end
 end

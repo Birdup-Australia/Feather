@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Feather
+module FeatherAi
   # Core bird identification using LLM vision and audio transcription.
   # rubocop:disable Metrics/ClassLength
   class Identifier
@@ -18,7 +18,7 @@ module Feather
       anthropic: { input: 3.00, output: 15.00 }
     }.freeze
 
-    def initialize(config: Feather.configuration)
+    def initialize(config: FeatherAi.configuration)
       @config = config
     end
 
@@ -29,7 +29,7 @@ module Feather
       source = derive_source(image, audio)
       payload = instrumentation_payload(effective_location, image, audio)
 
-      Instrumentation.instrument("identify.feather", payload) do
+      Instrumentation.instrument("identify.feather_ai", payload) do
         response, duration_ms = perform_identification(image, audio, effective_location)
         result = build_result(response, duration_ms, source)
         payload[:result] = result
@@ -42,7 +42,7 @@ module Feather
     def validate_inputs!(image, audio)
       return unless image.nil? && audio.nil?
 
-      raise Feather::ConfigurationError, "At least one of image or audio must be provided"
+      raise FeatherAi::ConfigurationError, "At least one of image or audio must be provided"
     end
 
     def instrumentation_payload(location, image, audio)

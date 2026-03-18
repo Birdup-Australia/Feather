@@ -1,25 +1,27 @@
-# Feather
+# FeatherAi
 
-A Ruby gem for identifying birds from photos and audio using [RubyLLM](https://github.com/coelacanth/ruby_llm). Feather adds multi-modal identification, location-aware results, multi-model consensus, and a Rails integration on top of RubyLLM.
+[![Gem Version](https://badge.fury.io/rb/feather-ai.svg?icon=si%3Arubygems)](https://badge.fury.io/rb/feather-ai)
+
+A Ruby gem for identifying birds from photos and audio using [RubyLLM](https://github.com/coelacanth/ruby_llm). FeatherAi adds multi-modal identification, location-aware results, multi-model consensus, and a Rails integration on top of RubyLLM.
 
 ## Installation
 
 Add to your Gemfile:
 
 ```ruby
-gem "feather"
+gem "feather-ai"
 ```
 
 Or install directly:
 
 ```bash
-gem install feather
+gem install feather-ai
 ```
 
 ## Configuration
 
 ```ruby
-Feather.configure do |c|
+FeatherAi.configure do |c|
   c.provider  = :anthropic           # Default: :anthropic
   c.model     = "claude-sonnet-4"    # Default: "claude-sonnet-4"
   c.location  = "Perth, WA"          # Optional: biases results to local species
@@ -27,7 +29,7 @@ Feather.configure do |c|
 end
 ```
 
-RubyLLM must be configured with your provider credentials before using Feather. See the [RubyLLM docs](https://github.com/coelacanth/ruby_llm) for setup.
+RubyLLM must be configured with your provider credentials before using FeatherAi. See the [RubyLLM docs](https://github.com/coelacanth/ruby_llm) for setup.
 
 ## Usage
 
@@ -36,7 +38,7 @@ RubyLLM must be configured with your provider credentials before using Feather. 
 Identify a bird from an image:
 
 ```ruby
-result = Feather.identify("path/to/bird.jpg")
+result = FeatherAi.identify("path/to/bird.jpg")
 
 result.common_name   # => "Western Magpie"
 result.species       # => "Gymnorhina tibicen"
@@ -49,13 +51,13 @@ result.region_native? # => true
 Identify from audio:
 
 ```ruby
-result = Feather.identify(nil, "path/to/bird_call.mp3")
+result = FeatherAi.identify(nil, "path/to/bird_call.mp3")
 ```
 
 Identify from both image and audio:
 
 ```ruby
-result = Feather.identify("path/to/bird.jpg", "path/to/bird_call.mp3")
+result = FeatherAi.identify("path/to/bird.jpg", "path/to/bird_call.mp3")
 ```
 
 ### Location-Aware Results
@@ -63,7 +65,7 @@ result = Feather.identify("path/to/bird.jpg", "path/to/bird_call.mp3")
 Pass a location to bias the model toward species native to that region:
 
 ```ruby
-result = Feather.identify("path/to/bird.jpg", location: "Perth, Western Australia")
+result = FeatherAi.identify("path/to/bird.jpg", location: "Perth, Western Australia")
 
 result.region_native? # => true/false based on species range
 ```
@@ -75,7 +77,7 @@ A default location can also be set globally in configuration.
 Run identification through two models independently. When both agree on species, you get high confidence. When they disagree, you get the candidates:
 
 ```ruby
-result = Feather.identify("path/to/bird.jpg", consensus: true)
+result = FeatherAi.identify("path/to/bird.jpg", consensus: true)
 
 if result.confident?
   puts "Both models agree: #{result.species}"
@@ -88,7 +90,7 @@ end
 Consensus models are configurable:
 
 ```ruby
-Feather.configure do |c|
+FeatherAi.configure do |c|
   c.consensus_models = ["claude-sonnet-4", "claude-haiku-4"]
 end
 ```
@@ -108,7 +110,7 @@ tips[:habitat]      # => "Open woodlands, grasslands, and suburban parks"
 
 ### Result Object
 
-All identification calls return a `Feather::Result`:
+All identification calls return a `FeatherAi::Result`:
 
 | Method | Type | Description |
 |---|---|---|
@@ -129,9 +131,9 @@ All identification calls return a `Feather::Result`:
 Run the install generator to scaffold the migration:
 
 ```bash
-rails generate feather:install
+rails generate feather_ai:install
 # or with a custom model name:
-rails generate feather:install observation
+rails generate feather_ai:install observation
 ```
 
 Run the migration:
@@ -166,7 +168,7 @@ sighting.species      # => "Gymnorhina tibicen"
 sighting.confident?   # => true (delegated through result)
 ```
 
-`identify!` downloads the attached photo, calls `Feather.identify`, updates the record's identification columns, and returns the `Feather::Result`.
+`identify!` downloads the attached photo, calls `FeatherAi.identify`, updates the record's identification columns, and returns the `FeatherAi::Result`.
 
 ## Development
 
@@ -182,19 +184,19 @@ Tests use VCR + WebMock to record and replay LLM responses — no API keys are r
 
 ## Thread Safety
 
-`Feather.configuration` is a process-level singleton initialised lazily with `||=`. Under MRI Ruby, the Global VM Lock (GVL) makes this safe in practice. If you use JRuby or Ractors, initialise configuration eagerly at boot time before spawning threads:
+`FeatherAi.configuration` is a process-level singleton initialised lazily with `||=`. Under MRI Ruby, the Global VM Lock (GVL) makes this safe in practice. If you use JRuby or Ractors, initialise configuration eagerly at boot time before spawning threads:
 
 ```ruby
 # In an initialiser or boot file — before any threads are created
-Feather.configure do |c|
+FeatherAi.configure do |c|
   c.provider = :anthropic
   c.model    = "claude-sonnet-4"
 end
 ```
 
-`Feather.identify` is stateless per-call — each invocation constructs its own `Identifier` or `Consensus` instance and `RubyLLM::Chat` session. Concurrent calls are safe.
+`FeatherAi.identify` is stateless per-call — each invocation constructs its own `Identifier` or `Consensus` instance and `RubyLLM::Chat` session. Concurrent calls are safe.
 
-`Feather::Consensus` parallelises model calls using Ruby threads (`Thread.new`), so two LLM requests run concurrently and the total wall-clock time is roughly that of the slower model, not the sum of both.
+`FeatherAi::Consensus` parallelises model calls using Ruby threads (`Thread.new`), so two LLM requests run concurrently and the total wall-clock time is roughly that of the slower model, not the sum of both.
 
 ## Contributing
 

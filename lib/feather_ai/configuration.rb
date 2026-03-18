@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-module Feather
-  # Configuration object for Feather gem settings.
+module FeatherAi
+  # Configuration object for FeatherAi gem settings.
   class Configuration
     attr_accessor :provider, :model, :location, :consensus_models, :tips_model
 

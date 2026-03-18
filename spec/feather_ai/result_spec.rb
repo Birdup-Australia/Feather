@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe Feather::Result do
+RSpec.describe FeatherAi::Result do
   subject(:result) { described_class.new(attrs) }
 
   let(:attrs) do
