@@ -196,7 +196,7 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       allow(Feather).to receive(:identify).and_return(mock_result)
     end
 
-    it "calls Feather.identify with the downloaded photo and location" do
+    it "calls feather.identify with the downloaded photo and location" do
       sighting_with_photo.identify!
       expect(Feather).to have_received(:identify).with(mock_photo_file, location: "Perth, Western Australia")
     end
@@ -210,7 +210,7 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       expect(sighting_with_photo.region_native).to be(true)
     end
 
-    it "returns the Feather::Result" do
+    it "returns the feather::Result" do
       result = sighting_with_photo.identify!
       expect(result).to be_a(Feather::Result)
       expect(result.species).to eq("Gymnorhina tibicen")
@@ -221,7 +221,7 @@ RSpec.describe Feather::Rails::ActsAsSighting do
       expect(mock_photo_file.closed?).to be(true)
     end
 
-    it "closes the photo file even when Feather.identify raises" do
+    it "closes the photo file even when feather.identify raises" do
       allow(Feather).to receive(:identify).and_raise(RuntimeError, "API error")
       expect { sighting_with_photo.identify! }.to raise_error(RuntimeError, "API error")
       expect(mock_photo_file.closed?).to be(true)
