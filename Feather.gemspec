@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.description = "A Ruby gem for identifying birds from photos and audio using RubyLLM. " \
                      "Adds multi-modal identification, location-aware results, multi-model consensus, " \
                      "and a Rails integration."
-  spec.homepage = "https://github.com/GoodPie/feather"
+  spec.homepage = "https://github.com/Birdup-Australia/Feather"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.2.0"
 

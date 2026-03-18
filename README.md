@@ -198,7 +198,7 @@ end
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/GoodPie/feather.
+Bug reports and pull requests are welcome on GitHub at https://github.com/Birdup-Australia/Feather.
 
 ## License
 
