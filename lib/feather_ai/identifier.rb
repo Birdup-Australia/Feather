@@ -6,7 +6,8 @@ module FeatherAi
   class Identifier
     SCHEMA = RubyLLM::Schema.create do
       string :reasoning,
-             description: "Step-by-step visual analysis: describe body size, bill shape, plumage, markings, and rule out similar species before identifying"
+             description: "Step-by-step visual analysis: describe body size, bill shape, " \
+                          "plumage, markings, and rule out similar species before identifying"
       string :common_name, description: "Common name of the bird"
       string :species, description: "Scientific species name (Genus species)"
       string :family, description: "Bird family name"
@@ -162,7 +163,15 @@ module FeatherAi
     end
 
     def system_prompt(location)
-      base = <<~PROMPT.gsub(/\s+/, " ").strip
+      base = base_system_prompt
+      return base unless location
+
+      "#{base} The observer is located in #{location} — " \
+        "prioritise species native to that region and consider regional plumage variations."
+    end
+
+    def base_system_prompt
+      <<~PROMPT.gsub(/\s+/, " ").strip
         You are an expert ornithologist specialising in field identification.
         Before identifying the bird, carefully analyse key visual features:
         body size and shape, bill shape and size, plumage colour and pattern,
@@ -172,9 +181,6 @@ module FeatherAi
         If the image is unclear or shows multiple species, identify the most
         prominent bird and set confidence to low or medium accordingly.
       PROMPT
-      return base unless location
-
-      "#{base} The observer is located in #{location} — prioritise species native to that region and consider regional plumage variations."
     end
 
     def build_message(images, audio)

@@ -5,7 +5,8 @@ RSpec.describe FeatherAi::Identifier do
 
   let(:mock_response) do
     {
-      "reasoning" => "Small passerine with vivid cobalt-blue plumage on head, back, and tail. Black eye-band and breast-band. Not a fairy-wren (Malurus cyaneus) due to deeper blue and lack of pale underparts.",
+      "reasoning" => "Small passerine with vivid cobalt-blue plumage on head, back, and tail. " \
+                     "Black eye-band and breast-band. Not a fairy-wren due to deeper blue.",
       "common_name" => "Splendid Fairywren",
       "species" => "Malurus splendens",
       "family" => "Maluridae",
@@ -147,7 +148,7 @@ RSpec.describe FeatherAi::Identifier do
 
     it "populates reasoning from the LLM response" do
       result = identifier.identify("bird.jpg")
-      expect(result.reasoning).to include("cobalt-blue plumage")
+      expect(result.reasoning).to include("cobalt-blue")
     end
 
     it "passes media_resolution HIGH to RubyLLM by default" do
@@ -157,7 +158,7 @@ RSpec.describe FeatherAi::Identifier do
       )
     end
 
-    it "respects a custom media_resolution config" do
+    it "respects a custom media_resolution config" do # rubocop:disable RSpec/ExampleLength
       config = FeatherAi::Configuration.new
       config.media_resolution = :medium
       described_class.new(config: config).identify("bird.jpg")
