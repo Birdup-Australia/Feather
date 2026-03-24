@@ -5,6 +5,8 @@ module FeatherAi
   # rubocop:disable Metrics/ClassLength
   class Identifier
     SCHEMA = RubyLLM::Schema.create do
+      string :reasoning,
+             description: "Step-by-step visual analysis: describe body size, bill shape, plumage, markings, and rule out similar species before identifying"
       string :common_name, description: "Common name of the bird"
       string :species, description: "Scientific species name (Genus species)"
       string :family, description: "Bird family name"
@@ -84,7 +86,17 @@ module FeatherAi
       chat = RubyLLM.chat(model: @config.model)
       chat.with_instructions(system_prompt(location))
       chat.with_schema(SCHEMA)
+      chat.with_params(**generation_params) if generation_params.any?
       chat
+    end
+
+    def generation_params
+      params = {}
+      if @config.media_resolution
+        resolution = "MEDIA_RESOLUTION_#{@config.media_resolution.to_s.upcase}"
+        params[:generationConfig] = { mediaResolution: resolution }
+      end
+      params
     end
 
     def build_result(response, duration_ms, source)
@@ -97,6 +109,7 @@ module FeatherAi
 
     def parsed_identification_attrs(parsed)
       {
+        reasoning: parsed["reasoning"],
         common_name: parsed["common_name"],
         species: parsed["species"],
         family: parsed["family"],
@@ -149,11 +162,19 @@ module FeatherAi
     end
 
     def system_prompt(location)
-      base = "You are an expert ornithologist. Identify the bird from the provided image and/or audio. " \
-             "Return structured identification data."
+      base = <<~PROMPT.gsub(/\s+/, " ").strip
+        You are an expert ornithologist specialising in field identification.
+        Before identifying the bird, carefully analyse key visual features:
+        body size and shape, bill shape and size, plumage colour and pattern,
+        eye colour, leg colour, tail shape, and any distinctive markings.
+        Consider common look-alikes and explain why this is not one of them.
+        Only then commit to your identification with structured data.
+        If the image is unclear or shows multiple species, identify the most
+        prominent bird and set confidence to low or medium accordingly.
+      PROMPT
       return base unless location
 
-      "#{base} The observer is located in #{location} — prioritize species native to that region."
+      "#{base} The observer is located in #{location} — prioritise species native to that region and consider regional plumage variations."
     end
 
     def build_message(images, audio)

@@ -5,6 +5,7 @@ RSpec.describe FeatherAi::Identifier do
 
   let(:mock_response) do
     {
+      "reasoning" => "Small passerine with vivid cobalt-blue plumage on head, back, and tail. Black eye-band and breast-band. Not a fairy-wren (Malurus cyaneus) due to deeper blue and lack of pale underparts.",
       "common_name" => "Splendid Fairywren",
       "species" => "Malurus splendens",
       "family" => "Maluridae",
@@ -17,12 +18,13 @@ RSpec.describe FeatherAi::Identifier do
 
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
-    allow(mock_chat).to receive_messages(with_instructions: mock_chat, with_schema: mock_chat, ask: double(
-      content: mock_response,
-      model_id: "claude-sonnet-4-6",
-      input_tokens: 512,
-      output_tokens: 64
-    ))
+    allow(mock_chat).to receive_messages(with_instructions: mock_chat, with_schema: mock_chat,
+                                         with_params: mock_chat, ask: double(
+                                           content: mock_response,
+                                           model_id: "claude-sonnet-4-6",
+                                           input_tokens: 512,
+                                           output_tokens: 64
+                                         ))
   end
 
   describe "#identify" do
@@ -141,6 +143,34 @@ RSpec.describe FeatherAi::Identifier do
     it "sets consensus_models to nil for single-model calls" do
       result = identifier.identify("bird.jpg")
       expect(result.consensus_models).to be_nil
+    end
+
+    it "populates reasoning from the LLM response" do
+      result = identifier.identify("bird.jpg")
+      expect(result.reasoning).to include("cobalt-blue plumage")
+    end
+
+    it "passes media_resolution HIGH to RubyLLM by default" do
+      identifier.identify("bird.jpg")
+      expect(mock_chat).to have_received(:with_params).with(
+        generationConfig: { mediaResolution: "MEDIA_RESOLUTION_HIGH" }
+      )
+    end
+
+    it "respects a custom media_resolution config" do
+      config = FeatherAi::Configuration.new
+      config.media_resolution = :medium
+      described_class.new(config: config).identify("bird.jpg")
+      expect(mock_chat).to have_received(:with_params).with(
+        generationConfig: { mediaResolution: "MEDIA_RESOLUTION_MEDIUM" }
+      )
+    end
+
+    it "skips with_params when media_resolution is nil" do
+      config = FeatherAi::Configuration.new
+      config.media_resolution = nil
+      described_class.new(config: config).identify("bird.jpg")
+      expect(mock_chat).not_to have_received(:with_params)
     end
 
     context "with multiple images" do

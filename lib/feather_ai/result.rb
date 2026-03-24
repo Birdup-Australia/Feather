@@ -3,7 +3,7 @@
 module FeatherAi
   # Immutable value object wrapping all identification output.
   class Result
-    attr_reader :common_name, :species, :family, :confidence, :region_native, :candidates,
+    attr_reader :common_name, :species, :family, :confidence, :region_native, :reasoning, :candidates,
                 :input_tokens, :output_tokens, :cost, :model_id, :duration_ms, :source,
                 :consensus_models
 
@@ -42,6 +42,7 @@ module FeatherAi
       @family = attrs[:family]
       @confidence = attrs[:confidence]&.to_sym
       @region_native = attrs[:region_native]
+      @reasoning = attrs[:reasoning]
       @candidates = attrs[:candidates] || []
     end
 
@@ -63,6 +64,7 @@ module FeatherAi
 
     def identification_hash
       {
+        reasoning: @reasoning,
         common_name: @common_name,
         species: @species,
         family: @family,

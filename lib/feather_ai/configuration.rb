@@ -3,7 +3,7 @@
 module FeatherAi
   # Configuration object for FeatherAi gem settings.
   class Configuration
-    attr_accessor :provider, :model, :location, :consensus_models, :tips_model
+    attr_accessor :provider, :model, :location, :consensus_models, :tips_model, :media_resolution
 
     def initialize
       @provider = :anthropic
@@ -11,6 +11,7 @@ module FeatherAi
       @location = nil
       @consensus_models = %w[claude-sonnet-4 claude-haiku-4]
       @tips_model = "claude-haiku-4"
+      @media_resolution = :high
     end
 
     def initialize_copy(source)
