@@ -94,7 +94,7 @@ RSpec.describe FeatherAi::Identifier do
       result = identifier.identify("bird.jpg")
       aggregate_failures do
         expect(result.cost).to be_a(Float)
-        expect(result.cost).to be > 0
+        expect(result.cost).to be_positive
       end
     end
 
@@ -141,6 +141,65 @@ RSpec.describe FeatherAi::Identifier do
     it "sets consensus_models to nil for single-model calls" do
       result = identifier.identify("bird.jpg")
       expect(result.consensus_models).to be_nil
+    end
+
+    context "with multiple images" do
+      it "accepts an array of image paths" do
+        result = identifier.identify(%w[front.jpg side.jpg back.jpg])
+        expect(result).to be_a(FeatherAi::Result)
+      end
+
+      it "sends all images as separate image parts in the message" do # rubocop:disable RSpec/MultipleExpectations
+        identifier.identify(%w[front.jpg side.jpg])
+        expect(mock_chat).to have_received(:ask) do |message|
+          image_parts = message.select { |p| p[:type] == :image }
+          expect(image_parts.map { |p| p[:content] }).to eq(%w[front.jpg side.jpg])
+        end
+      end
+
+      it "uses a multi-image prompt when multiple images are provided" do # rubocop:disable RSpec/MultipleExpectations
+        identifier.identify(%w[front.jpg side.jpg])
+        expect(mock_chat).to have_received(:ask) do |message|
+          text_parts = message.select { |p| p[:type] == :text }
+          expect(text_parts.last[:content]).to include("all images together")
+        end
+      end
+
+      it "sets source to :vision for multiple images without audio" do
+        result = identifier.identify(%w[front.jpg side.jpg])
+        expect(result.source).to eq(:vision)
+      end
+
+      it "sets source to :multimodal for multiple images with audio" do
+        allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
+        result = identifier.identify(%w[front.jpg side.jpg], "bird.mp3")
+        expect(result.source).to eq(:multimodal)
+      end
+
+      it "treats a single string the same as a single-element array" do # rubocop:disable RSpec/MultipleExpectations
+        identifier.identify("bird.jpg")
+        expect(mock_chat).to have_received(:ask) do |message|
+          image_parts = message.select { |p| p[:type] == :image }
+          expect(image_parts.size).to eq(1)
+        end
+      end
+
+      it "raises ConfigurationError for an empty array with no audio" do
+        expect { identifier.identify([]) }.to raise_error(FeatherAi::ConfigurationError)
+      end
+
+      it "raises ArgumentError for non-String/Array input" do
+        expect { identifier.identify({ path: "bird.jpg" }) }.to raise_error(ArgumentError, /got Hash/)
+      end
+
+      it "uses a multimodal prompt when multiple images and audio are provided" do # rubocop:disable RSpec/MultipleExpectations,RSpec/ExampleLength
+        allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
+        identifier.identify(%w[front.jpg side.jpg], "bird.mp3")
+        expect(mock_chat).to have_received(:ask) do |message|
+          text_parts = message.select { |p| p[:type] == :text }
+          expect(text_parts.last[:content]).to include("images and heard in the audio")
+        end
+      end
     end
   end
 end

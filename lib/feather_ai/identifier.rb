@@ -22,41 +22,56 @@ module FeatherAi
       @config = config
     end
 
+    # @param image [String, Array<String>, nil] path(s) to image file(s)
+    # @param audio [String, nil] path to audio file
     def identify(image = nil, audio = nil, location: nil)
-      validate_inputs!(image, audio)
+      images = normalize_images(image)
+      validate_inputs!(images, audio)
+      run_identification(images, audio, location || @config.location)
+    end
 
-      effective_location = location || @config.location
-      source = derive_source(image, audio)
-      payload = instrumentation_payload(effective_location, image, audio)
+    private
+
+    def normalize_images(image)
+      case image
+      when nil    then []
+      when String then [image]
+      when Array  then image
+      else raise ArgumentError, "image must be a String or Array<String>, got #{image.class}"
+      end
+    end
+
+    def run_identification(images, audio, effective_location)
+      source = derive_source(images, audio)
+      payload = instrumentation_payload(effective_location, images, audio)
 
       Instrumentation.instrument("identify.feather_ai", payload) do
-        response, duration_ms = perform_identification(image, audio, effective_location)
+        response, duration_ms = perform_identification(images, audio, effective_location)
         result = build_result(response, duration_ms, source)
         payload[:result] = result
         result
       end
     end
 
-    private
-
-    def validate_inputs!(image, audio)
-      return unless image.nil? && audio.nil?
+    def validate_inputs!(images, audio)
+      return unless images.empty? && audio.nil?
 
       raise FeatherAi::ConfigurationError, "At least one of image or audio must be provided"
     end
 
-    def instrumentation_payload(location, image, audio)
+    def instrumentation_payload(location, images, audio)
       {
         model: @config.model,
         location: location,
-        has_image: !image.nil?,
+        has_image: images.any?,
+        image_count: images.size,
         has_audio: !audio.nil?
       }
     end
 
-    def perform_identification(image, audio, location)
+    def perform_identification(images, audio, location)
       chat = configure_chat(location)
-      message = build_message(image, audio)
+      message = build_message(images, audio)
 
       start_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
       response = chat.ask(message)
@@ -112,10 +127,10 @@ module FeatherAi
       }
     end
 
-    def derive_source(image, audio)
-      if image && audio
+    def derive_source(images, audio)
+      if images.any? && audio
         :multimodal
-      elsif image
+      elsif images.any?
         :vision
       else
         :audio
@@ -141,19 +156,28 @@ module FeatherAi
       "#{base} The observer is located in #{location} — prioritize species native to that region."
     end
 
-    def build_message(image, audio)
-      parts = []
-
-      parts << { type: :image, content: image } if image
-
-      if audio
-        transcript = RubyLLM.transcribe(audio)
-        parts << { type: :text, content: "Bird call/song transcript: #{transcript}" }
-      end
-
-      parts << { type: :text, content: "Identify the bird shown and/or heard above." }
-
+    def build_message(images, audio)
+      parts = images.map { |img| { type: :image, content: img } }
+      append_audio_transcript(parts, audio)
+      parts << { type: :text, content: identification_prompt(images.size, has_audio: !audio.nil?) }
       parts
+    end
+
+    def append_audio_transcript(parts, audio)
+      return unless audio
+
+      transcript = RubyLLM.transcribe(audio)
+      parts << { type: :text, content: "Bird call/song transcript: #{transcript}" }
+    end
+
+    def identification_prompt(image_count, has_audio:)
+      if image_count > 1 && has_audio
+        "Identify the bird shown in the provided images and heard in the audio. Use all inputs together."
+      elsif image_count > 1
+        "Identify the bird shown in the provided images. Use all images together to make your identification."
+      else
+        "Identify the bird shown and/or heard above."
+      end
     end
   end
   # rubocop:enable Metrics/ClassLength

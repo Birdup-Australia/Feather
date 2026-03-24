@@ -30,6 +30,9 @@ module FeatherAi
       @configuration = nil
     end
 
+    # Identify a bird from image(s) and/or audio.
+    # @param image [String, Array<String>, nil] path(s) to image file(s)
+    # @param audio [String, nil] path to audio file
     def identify(image = nil, audio = nil, location: nil, consensus: false)
       if consensus
         Consensus.new.identify(image, audio, location: location)
