@@ -74,10 +74,11 @@ module FeatherAi
 
     def perform_identification(images, audio, location)
       chat = configure_chat(location)
-      message = build_message(images, audio)
+      prompt = build_text_prompt(images, audio)
+      attachments = images.any? ? images : nil
 
       start_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-      response = chat.ask(message)
+      response = chat.ask(prompt, with: attachments)
       duration_ms = Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond) - start_ms
 
       [response, duration_ms]
@@ -183,18 +184,14 @@ module FeatherAi
       PROMPT
     end
 
-    def build_message(images, audio)
-      parts = images.map { |img| { type: :image, content: img } }
-      append_audio_transcript(parts, audio)
-      parts << { type: :text, content: identification_prompt(images.size, has_audio: !audio.nil?) }
-      parts
-    end
-
-    def append_audio_transcript(parts, audio)
-      return unless audio
-
-      transcript = RubyLLM.transcribe(audio)
-      parts << { type: :text, content: "Bird call/song transcript: #{transcript}" }
+    def build_text_prompt(images, audio)
+      parts = []
+      if audio
+        transcript = RubyLLM.transcribe(audio)
+        parts << "Bird call/song transcript: #{transcript}"
+      end
+      parts << identification_prompt(images.size, has_audio: !audio.nil?)
+      parts.join("\n")
     end
 
     def identification_prompt(image_count, has_audio:)

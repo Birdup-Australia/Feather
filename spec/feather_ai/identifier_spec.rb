@@ -180,20 +180,14 @@ RSpec.describe FeatherAi::Identifier do
         expect(result).to be_a(FeatherAi::Result)
       end
 
-      it "sends all images as separate image parts in the message" do # rubocop:disable RSpec/MultipleExpectations
+      it "sends all images as attachments via with:" do
         identifier.identify(%w[front.jpg side.jpg])
-        expect(mock_chat).to have_received(:ask) do |message|
-          image_parts = message.select { |p| p[:type] == :image }
-          expect(image_parts.map { |p| p[:content] }).to eq(%w[front.jpg side.jpg])
-        end
+        expect(mock_chat).to have_received(:ask).with(anything, with: %w[front.jpg side.jpg])
       end
 
-      it "uses a multi-image prompt when multiple images are provided" do # rubocop:disable RSpec/MultipleExpectations
+      it "uses a multi-image prompt when multiple images are provided" do
         identifier.identify(%w[front.jpg side.jpg])
-        expect(mock_chat).to have_received(:ask) do |message|
-          text_parts = message.select { |p| p[:type] == :text }
-          expect(text_parts.last[:content]).to include("all images together")
-        end
+        expect(mock_chat).to have_received(:ask).with(include("all images together"), with: anything)
       end
 
       it "sets source to :vision for multiple images without audio" do
@@ -207,12 +201,9 @@ RSpec.describe FeatherAi::Identifier do
         expect(result.source).to eq(:multimodal)
       end
 
-      it "treats a single string the same as a single-element array" do # rubocop:disable RSpec/MultipleExpectations
+      it "treats a single string the same as a single-element array" do
         identifier.identify("bird.jpg")
-        expect(mock_chat).to have_received(:ask) do |message|
-          image_parts = message.select { |p| p[:type] == :image }
-          expect(image_parts.size).to eq(1)
-        end
+        expect(mock_chat).to have_received(:ask).with(anything, with: ["bird.jpg"])
       end
 
       it "raises ConfigurationError for an empty array with no audio" do
@@ -223,13 +214,10 @@ RSpec.describe FeatherAi::Identifier do
         expect { identifier.identify({ path: "bird.jpg" }) }.to raise_error(ArgumentError, /got Hash/)
       end
 
-      it "uses a multimodal prompt when multiple images and audio are provided" do # rubocop:disable RSpec/MultipleExpectations,RSpec/ExampleLength
+      it "uses a multimodal prompt when multiple images and audio are provided" do
         allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
         identifier.identify(%w[front.jpg side.jpg], "bird.mp3")
-        expect(mock_chat).to have_received(:ask) do |message|
-          text_parts = message.select { |p| p[:type] == :text }
-          expect(text_parts.last[:content]).to include("images and heard in the audio")
-        end
+        expect(mock_chat).to have_received(:ask).with(include("images and heard in the audio"), with: anything)
       end
     end
   end
