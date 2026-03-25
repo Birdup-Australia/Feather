@@ -22,10 +22,12 @@ gem install feather-ai
 
 ```ruby
 FeatherAi.configure do |c|
-  c.provider  = :anthropic           # Default: :anthropic
-  c.model     = "claude-sonnet-4"    # Default: "claude-sonnet-4"
-  c.location  = "Perth, WA"          # Optional: biases results to local species
+  c.provider         = :anthropic           # Default: :anthropic
+  c.model            = "claude-sonnet-4"    # Default: "claude-sonnet-4"
+  c.location         = "Perth, WA"          # Optional: biases results to local species
   c.consensus_models = ["claude-sonnet-4", "claude-haiku-4"]  # Models used in consensus mode
+  c.tips_model       = "claude-haiku-4"     # Model for photography tips (default)
+  c.media_resolution = :high                # Image resolution sent to provider (default)
 end
 ```
 
@@ -52,6 +54,12 @@ Identify from audio:
 
 ```ruby
 result = FeatherAi.identify(nil, "path/to/bird_call.mp3")
+```
+
+Identify from multiple images at once:
+
+```ruby
+result = FeatherAi.identify(["front.jpg", "side.jpg"])
 ```
 
 Identify from both image and audio:
@@ -124,6 +132,19 @@ All identification calls return a `FeatherAi::Result`:
 | `photography_tips` | Hash | Lazy-loaded shooting advice |
 | `to_h` | Hash | All fields as a plain hash |
 
+Every result also carries observability data from the LLM call:
+
+| Method | Type | Description |
+|---|---|---|
+| `reasoning` | String | Step-by-step visual analysis the model performed |
+| `model_id` | String | Model that produced the identification |
+| `input_tokens` | Integer | Tokens sent to the model |
+| `output_tokens` | Integer | Tokens received from the model |
+| `cost` | Float | Estimated USD cost (based on built-in rate tables, or `nil`) |
+| `duration_ms` | Integer | Wall-clock time of the LLM call in milliseconds |
+| `source` | Symbol | `:vision`, `:audio`, or `:multimodal` |
+| `consensus_models` | Array | Models used when consensus mode was enabled |
+
 ## Rails Integration
 
 ### Setup
@@ -170,6 +191,61 @@ sighting.confident?   # => true (delegated through result)
 
 `identify!` downloads the attached photo, calls `FeatherAi.identify`, updates the record's identification columns, and returns the `FeatherAi::Result`.
 
+### Corrections
+
+Users or moderators can correct AI identifications. First, run the corrections generator to add the necessary columns:
+
+```bash
+rails generate feather_ai:add_corrections
+# or with a custom model name:
+rails generate feather_ai:add_corrections observation
+```
+
+Then apply corrections to a record:
+
+```ruby
+sighting.correct!(common_name: "Australian Magpie", species: "Gymnorhina tibicen dorsalis")
+
+sighting.corrected?      # => true
+sighting.corrected_at    # => 2026-03-25 12:00:00 UTC
+
+sighting.correction_delta
+# => { common_name: { from: "Western Magpie", to: "Australian Magpie" },
+#      species:     { from: "Gymnorhina tibicen", to: "Gymnorhina tibicen dorsalis" } }
+```
+
+Correctable fields: `common_name`, `species`, `family`, `confidence`, `region_native`.
+
+## Instrumentation
+
+When `ActiveSupport::Notifications` is available (e.g. in Rails), every identification emits an `identify.feather_ai` event. Without ActiveSupport the instrumentation is a no-op.
+
+```ruby
+ActiveSupport::Notifications.subscribe("identify.feather_ai") do |_name, _start, _finish, _id, payload|
+  Rails.logger.info "Identified #{payload[:result].common_name} " \
+                     "with model=#{payload[:model]} in #{payload[:result].duration_ms}ms"
+end
+```
+
+Payload keys: `model`, `location`, `has_image`, `image_count`, `has_audio`, and `result` (the `FeatherAi::Result`).
+
+## Error Handling
+
+FeatherAi raises specific error classes, all inheriting from `FeatherAi::Error`:
+
+- `FeatherAi::ConfigurationError` — invalid or missing configuration (e.g. no image or audio provided)
+- `FeatherAi::IdentificationError` — failure during the LLM identification call
+
+```ruby
+begin
+  FeatherAi.identify("path/to/bird.jpg")
+rescue FeatherAi::ConfigurationError => e
+  # handle bad config
+rescue FeatherAi::IdentificationError => e
+  # handle LLM failure
+end
+```
+
 ## Development
 
 ```bash
@@ -181,6 +257,12 @@ bin/console         # Interactive console with gem loaded
 ```
 
 Tests use VCR + WebMock to record and replay LLM responses — no API keys are required to run the test suite.
+
+Use `FeatherAi.reset!` to clear configuration between test examples:
+
+```ruby
+after { FeatherAi.reset! }
+```
 
 ## Thread Safety
 
