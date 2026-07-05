@@ -33,11 +33,12 @@ module FeatherAi
     # Identify a bird from image(s) and/or audio.
     # @param image [String, Array<String>, nil] path(s) to image file(s)
     # @param audio [String, nil] path to audio file
-    def identify(image = nil, audio = nil, location: nil, consensus: false)
+    # @param tools [Array, nil] RubyLLM tools (classes or instances) the model may call for grounding
+    def identify(image = nil, audio = nil, location: nil, consensus: false, tools: nil)
       if consensus
-        Consensus.new.identify(image, audio, location: location)
+        Consensus.new.identify(image, audio, location: location, tools: tools)
       else
-        Identifier.new.identify(image, audio, location: location)
+        Identifier.new.identify(image, audio, location: location, tools: tools)
       end
     end
   end

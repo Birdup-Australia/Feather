@@ -2,17 +2,18 @@
 
 module FeatherAi
   # Multi-model consensus identification to improve accuracy.
+  # rubocop:disable Metrics/ClassLength
   class Consensus
     def initialize(config: FeatherAi.configuration)
       @config = config
       @models = config.consensus_models
     end
 
-    def identify(image = nil, audio = nil, location: nil)
+    def identify(image = nil, audio = nil, location: nil, tools: nil)
       payload = { models: @models, location: location || @config.location }
 
       Instrumentation.instrument("consensus.feather_ai", payload) do
-        results = fetch_results_from_models(image, audio, location)
+        results = fetch_results_from_models(image, audio, location, tools)
         shared_attrs = aggregate_metrics(results)
         result = build_consensus_result(results, shared_attrs)
 
@@ -24,10 +25,12 @@ module FeatherAi
 
     private
 
-    def fetch_results_from_models(image, audio, location)
+    def fetch_results_from_models(image, audio, location, tools)
       @models.map do |model|
         config_for_model = config_with_model(model)
-        Thread.new { Identifier.new(config: config_for_model).identify(image, audio, location: location) }
+        Thread.new do
+          Identifier.new(config: config_for_model).identify(image, audio, location: location, tools: tools)
+        end
       end.map(&:value)
     end
 
@@ -66,6 +69,7 @@ module FeatherAi
         confidence: :high,
         region_native: primary.region_native?,
         model_id: primary.model_id,
+        candidates: primary.candidates,
         photography_tips_loader: tips_loader_for(primary)
       }
     end
@@ -78,7 +82,24 @@ module FeatherAi
         confidence: :low,
         region_native: false,
         model_id: nil,
-        candidates: results
+        candidates: ranked_candidates(results)
+      }
+    end
+
+    # Rank disagreeing identifications by vote share across the consensus models.
+    def ranked_candidates(results)
+      results.group_by { |r| r.species&.strip&.downcase }
+             .values
+             .map { |group| vote_candidate(group, results.size) }
+             .sort_by { |candidate| -candidate[:score] }
+    end
+
+    def vote_candidate(group, total)
+      primary = group.first
+      {
+        common_name: primary.common_name,
+        species: primary.species,
+        score: group.size.to_f / total
       }
     end
 
@@ -112,4 +133,5 @@ module FeatherAi
       dup_config
     end
   end
+  # rubocop:enable Metrics/ClassLength
 end

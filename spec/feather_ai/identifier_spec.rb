@@ -11,15 +11,21 @@ RSpec.describe FeatherAi::Identifier do
       "species" => "Malurus splendens",
       "family" => "Maluridae",
       "confidence" => "high",
-      "region_native" => true
+      "region_native" => true,
+      "candidates" => [
+        { "common_name" => "Splendid Fairywren", "species" => "Malurus splendens", "score" => 0.9 },
+        { "common_name" => "Superb Fairywren", "species" => "Malurus cyaneus", "score" => 0.1 }
+      ]
     }
   end
 
   let(:mock_chat) { instance_double(RubyLLM::Chat) }
+  let(:lookup_tool) { double("SpeciesLookupTool") } # rubocop:disable RSpec/VerifiedDoubles
 
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
     allow(mock_chat).to receive_messages(with_instructions: mock_chat, with_schema: mock_chat,
+                                         with_tools: mock_chat,
                                          with_params: mock_chat, ask: double(
                                            content: mock_response,
                                            model_id: "claude-sonnet-4-6",
@@ -75,8 +81,50 @@ RSpec.describe FeatherAi::Identifier do
     it "lazy-loads photography tips" do
       result = identifier.identify("bird.jpg")
       aggregate_failures do
-        expect(RubyLLM).not_to have_received(:chat).with(hash_including(model: "claude-haiku-4"))
+        expect(RubyLLM).not_to have_received(:chat).with(hash_including(model: "claude-haiku-4-5"))
         expect(result).to respond_to(:photography_tips)
+      end
+    end
+
+    it "parses ranked candidates into symbol-keyed hashes" do
+      top = { common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.9 }
+      runner_up = { common_name: "Superb Fairywren", species: "Malurus cyaneus", score: 0.1 }
+      expect(identifier.identify("bird.jpg").candidates).to eq([top, runner_up])
+    end
+
+    it "returns empty candidates when the response omits them" do
+      allow(mock_chat).to receive(:ask)
+        .and_return(double(content: mock_response.except("candidates"), model_id: "m", input_tokens: 1,
+                           output_tokens: 1))
+      expect(identifier.identify("bird.jpg").candidates).to eq([])
+    end
+
+    context "with tools" do
+      it "does not register tools when none are configured" do
+        identifier.identify("bird.jpg")
+        expect(mock_chat).not_to have_received(:with_tools)
+      end
+
+      it "passes per-call tools to the chat" do
+        identifier.identify("bird.jpg", tools: [lookup_tool])
+        expect(mock_chat).to have_received(:with_tools).with(lookup_tool)
+      end
+
+      it "falls back to configured tools" do
+        config = FeatherAi::Configuration.new
+        config.tools = [lookup_tool]
+        described_class.new(config: config).identify("bird.jpg")
+        expect(mock_chat).to have_received(:with_tools).with(lookup_tool)
+      end
+
+      it "mentions the lookup tools in the system prompt" do
+        identifier.identify("bird.jpg", tools: [lookup_tool])
+        expect(mock_chat).to have_received(:with_instructions).with(include("lookup tools"))
+      end
+
+      it "does not mention lookup tools in the system prompt without tools" do
+        identifier.identify("bird.jpg")
+        expect(mock_chat).to have_received(:with_instructions).with(satisfy { |p| !p.include?("lookup tools") })
       end
     end
 

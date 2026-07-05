@@ -13,6 +13,15 @@ module FeatherAi
       string :family, description: "Bird family name"
       string :confidence, description: "Identification confidence: high, medium, or low"
       boolean :region_native, description: "Whether this species is native to the given region"
+      array :candidates, min_items: 1, max_items: 3,
+                         description: "Candidate species ranked most to least likely; " \
+                                      "the first entry must match your identification" do
+        object do
+          string :common_name, description: "Common name of the candidate"
+          string :species, description: "Scientific species name (Genus species)"
+          number :score, minimum: 0, maximum: 1, description: "Relative likelihood of this candidate"
+        end
+      end
     end
 
     # Approximate mid-2025 rates (USD per 1M tokens).
@@ -27,10 +36,11 @@ module FeatherAi
 
     # @param image [String, Array<String>, nil] path(s) to image file(s)
     # @param audio [String, nil] path to audio file
-    def identify(image = nil, audio = nil, location: nil)
+    # @param tools [Array, nil] RubyLLM tools (classes or instances) the model may call for grounding
+    def identify(image = nil, audio = nil, location: nil, tools: nil)
       images = normalize_images(image)
       validate_inputs!(images, audio)
-      run_identification(images, audio, location || @config.location)
+      run_identification(images, audio, location || @config.location, tools || @config.tools)
     end
 
     private
@@ -44,12 +54,12 @@ module FeatherAi
       end
     end
 
-    def run_identification(images, audio, effective_location)
+    def run_identification(images, audio, effective_location, tools)
       source = derive_source(images, audio)
       payload = instrumentation_payload(effective_location, images, audio)
 
       Instrumentation.instrument("identify.feather_ai", payload) do
-        response, duration_ms = perform_identification(images, audio, effective_location)
+        response, duration_ms = perform_identification(images, audio, effective_location, tools)
         result = build_result(response, duration_ms, source)
         payload[:result] = result
         result
@@ -72,8 +82,8 @@ module FeatherAi
       }
     end
 
-    def perform_identification(images, audio, location)
-      chat = configure_chat(location)
+    def perform_identification(images, audio, location, tools)
+      chat = configure_chat(location, tools)
       prompt = build_text_prompt(images, audio)
       attachments = images.any? ? images : nil
 
@@ -84,10 +94,11 @@ module FeatherAi
       [response, duration_ms]
     end
 
-    def configure_chat(location)
+    def configure_chat(location, tools)
       chat = RubyLLM.chat(model: @config.model)
-      chat.with_instructions(system_prompt(location))
+      chat.with_instructions(system_prompt(location, tools))
       chat.with_schema(SCHEMA)
+      chat.with_tools(*tools) if tools.any?
       chat.with_params(**generation_params) if generation_params.any?
       chat
     end
@@ -117,8 +128,19 @@ module FeatherAi
         family: parsed["family"],
         confidence: parsed["confidence"],
         region_native: parsed["region_native"],
+        candidates: normalize_candidates(parsed["candidates"]),
         photography_tips_loader: tips_loader(parsed)
       }
+    end
+
+    def normalize_candidates(candidates)
+      Array(candidates).map do |candidate|
+        {
+          common_name: candidate["common_name"],
+          species: candidate["species"],
+          score: candidate["score"]
+        }
+      end
     end
 
     def response_observability_attrs(response, duration_ms, source)
@@ -163,12 +185,17 @@ module FeatherAi
       ((input_tokens * rates[:input]) + (output_tokens * rates[:output])) / 1_000_000.0
     end
 
-    def system_prompt(location)
-      base = base_system_prompt
-      return base unless location
-
-      "#{base} The observer is located in #{location} — " \
-        "prioritise species native to that region and consider regional plumage variations."
+    def system_prompt(location, tools = [])
+      prompt = base_system_prompt
+      if location
+        prompt += " The observer is located in #{location} — " \
+                  "prioritise species native to that region and consider regional plumage variations."
+      end
+      if tools.any?
+        prompt += " Use the provided lookup tools to verify species occurrence " \
+                  "for the observer's region before committing."
+      end
+      prompt
     end
 
     def base_system_prompt

@@ -23,11 +23,12 @@ gem install feather-ai
 ```ruby
 FeatherAi.configure do |c|
   c.provider         = :anthropic           # Default: :anthropic
-  c.model            = "claude-sonnet-4"    # Default: "claude-sonnet-4"
+  c.model            = "claude-sonnet-4-5"  # Default: "claude-sonnet-4-5"
   c.location         = "Perth, WA"          # Optional: biases results to local species
-  c.consensus_models = ["claude-sonnet-4", "claude-haiku-4"]  # Models used in consensus mode
-  c.tips_model       = "claude-haiku-4"     # Model for photography tips (default)
+  c.consensus_models = ["claude-sonnet-4-5", "claude-haiku-4-5"]  # Models used in consensus mode
+  c.tips_model       = "claude-haiku-4-5"   # Model for photography tips (default)
   c.media_resolution = :high                # Image resolution sent to provider (default)
+  c.tools            = []                   # RubyLLM tools available to every identification (default: none)
 end
 ```
 
@@ -80,6 +81,37 @@ result.region_native? # => true/false based on species range
 
 A default location can also be set globally in configuration.
 
+### Ranked Candidates
+
+Every identification returns up to three candidate species ranked by likelihood, with the top pick first:
+
+```ruby
+result = FeatherAi.identify("path/to/bird.jpg")
+
+result.candidates
+# => [{ common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.9 },
+#     { common_name: "Superb Fairywren",   species: "Malurus cyaneus",   score: 0.1 }]
+```
+
+### Grounded Identification (Tools)
+
+Pass RubyLLM tools so the model can verify its identification against real data — for example a species/region lookup backed by your own database:
+
+```ruby
+class SpeciesLookupTool < RubyLLM::Tool
+  description "Looks up whether a species occurs in a region"
+  param :species, desc: "Scientific species name"
+
+  def execute(species:)
+    Species.find_by(scientific_name: species)&.slice(:regions, :description) || { found: false }
+  end
+end
+
+result = FeatherAi.identify("path/to/bird.jpg", location: "Perth, WA", tools: [SpeciesLookupTool])
+```
+
+Tools can also be set globally via `c.tools` in configuration. Note: Gemini rejects structured-output schemas combined with tools on many models — the `tools:` option is tested against the Anthropic defaults.
+
 ### Consensus Mode
 
 Run identification through two models independently. When both agree on species, you get high confidence. When they disagree, you get the candidates:
@@ -91,7 +123,7 @@ if result.confident?
   puts "Both models agree: #{result.species}"
 else
   puts "Models disagree:"
-  result.candidates.each { |c| puts "  #{c.common_name} (#{c.species})" }
+  result.candidates.each { |c| puts "  #{c[:common_name]} (#{c[:species]}) — #{c[:score]}" }
 end
 ```
 
@@ -99,7 +131,7 @@ Consensus models are configurable:
 
 ```ruby
 FeatherAi.configure do |c|
-  c.consensus_models = ["claude-sonnet-4", "claude-haiku-4"]
+  c.consensus_models = ["claude-sonnet-4-5", "claude-haiku-4-5"]
 end
 ```
 
@@ -128,7 +160,7 @@ All identification calls return a `FeatherAi::Result`:
 | `confidence` | Symbol | `:high`, `:medium`, or `:low` |
 | `confident?` | Boolean | `true` when confidence is `:high` |
 | `region_native?` | Boolean | Whether species is native to the given region |
-| `candidates` | Array | Alternative results when consensus disagrees |
+| `candidates` | Array | Ranked candidate hashes (`common_name`, `species`, `score`); vote-share ranked on consensus disagreement |
 | `photography_tips` | Hash | Lazy-loaded shooting advice |
 | `to_h` | Hash | All fields as a plain hash |
 
@@ -174,7 +206,7 @@ class Sighting < ApplicationRecord
 end
 ```
 
-The generator adds these columns to the model's table: `common_name`, `species`, `family`, `confidence`, `region_native`.
+The generator adds these columns to the model's table: `common_name`, `species`, `family`, `confidence`, `region_native`, `candidates` (jsonb). On existing tables, `identify!` persists ranked candidates only when a `candidates` column is present — add one in your own migration or skip it.
 
 ### Identifying Records
 

@@ -33,13 +33,15 @@ module FeatherAi
         private
 
         def update_from_result!(result)
-          update!(
+          attrs = {
             common_name: result.common_name,
             species: result.species,
             family: result.family,
             confidence: result.confidence.to_s,
             region_native: result.region_native?
-          )
+          }
+          attrs[:candidates] = result.candidates if has_attribute?("candidates")
+          update!(attrs)
         end
 
         def close_photo_file(photo_file)

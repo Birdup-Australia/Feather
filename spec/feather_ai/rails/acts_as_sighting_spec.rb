@@ -147,7 +147,8 @@ RSpec.describe FeatherAi::Rails::ActsAsSighting do
         species: "Gymnorhina tibicen",
         family: "Artamidae",
         confidence: "high",
-        region_native: true
+        region_native: true,
+        candidates: [{ common_name: "Australian Magpie", species: "Gymnorhina tibicen", score: 0.9 }]
       )
     end
 
@@ -169,8 +170,8 @@ RSpec.describe FeatherAi::Rails::ActsAsSighting do
       end.new
     end
 
-    let(:sighting_with_photo) do
-      klass = Class.new do
+    let(:sighting_with_photo_class) do
+      Class.new do
         include FeatherAi::Rails::ActsAsSighting::InstanceMethods
 
         attr_accessor :common_name, :species, :family, :confidence, :region_native,
@@ -182,8 +183,16 @@ RSpec.describe FeatherAi::Rails::ActsAsSighting do
           attrs.each { |k, v| public_send(:"#{k}=", v) }
           self
         end
+
+        # Mimics ActiveRecord's column check for the plain-Ruby double.
+        def has_attribute?(name)
+          respond_to?(:"#{name}=")
+        end
       end
-      instance = klass.new
+    end
+
+    let(:sighting_with_photo) do
+      instance = sighting_with_photo_class.new
       instance.location = "Perth, Western Australia"
       instance
     end
@@ -228,6 +237,27 @@ RSpec.describe FeatherAi::Rails::ActsAsSighting do
       aggregate_failures do
         expect { sighting_with_photo.identify! }.to raise_error(RuntimeError, "API error")
         expect(mock_photo_file.closed?).to be(true)
+      end
+    end
+
+    it "skips candidates when the record has no candidates column" do
+      expect { sighting_with_photo.identify! }.not_to raise_error
+    end
+
+    context "when the record has a candidates column" do
+      def build_sighting_with_candidates
+        klass = Class.new(sighting_with_photo_class) { attr_accessor :candidates }
+        instance = klass.new
+        instance.location = "Perth, Western Australia"
+        instance
+      end
+
+      it "persists the ranked candidates" do
+        record = build_sighting_with_candidates
+        mock_photo = instance_double("ActiveStorage::Attached::One", download: mock_photo_file) # rubocop:disable RSpec/VerifiedDoubleReference
+        allow(record).to receive(:photo).and_return(mock_photo)
+        record.identify!
+        expect(record.candidates).to eq(mock_result.candidates)
       end
     end
   end
