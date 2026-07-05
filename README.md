@@ -114,7 +114,7 @@ Tools can also be set globally via `c.tools` in configuration. Note: Gemini reje
 
 ### Consensus Mode
 
-Run identification through two models independently. When both agree on species, you get high confidence. When they disagree, you get the candidates:
+Run identification through two models independently. When both agree on species, you get high confidence. When they disagree, the top-vote candidate (ties break in `consensus_models` order) is still returned as the primary identification with `:low` confidence, and `candidates` carries the full ranked list:
 
 ```ruby
 result = FeatherAi.identify("path/to/bird.jpg", consensus: true)
@@ -122,7 +122,7 @@ result = FeatherAi.identify("path/to/bird.jpg", consensus: true)
 if result.confident?
   puts "Both models agree: #{result.species}"
 else
-  puts "Models disagree:"
+  puts "Models disagree — best guess: #{result.species}"
   result.candidates.each { |c| puts "  #{c[:common_name]} (#{c[:species]}) — #{c[:score]}" }
 end
 ```

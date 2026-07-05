@@ -78,9 +78,9 @@ RSpec.describe FeatherAi::Consensus do
         )
       end
 
-      it "returns nil for species" do
+      it "promotes the top-ranked candidate to the primary identification (ties break in consensus_models order)" do
         result = consensus.identify("bird.jpg")
-        expect(result.species).to be_nil
+        expect(result).to have_attributes(species: "Malurus splendens", common_name: "Splendid Fairywren")
       end
 
       it "returns nil for family when families also differ" do

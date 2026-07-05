@@ -74,24 +74,29 @@ module FeatherAi
       }
     end
 
+    # On disagreement the top-ranked candidate is promoted to the primary
+    # identification (still :low confidence) so consumers always get a usable
+    # name — the full ranked list stays in candidates.
     def disagreed_result_attrs(results)
+      candidates = ranked_candidates(results)
       {
-        common_name: nil,
-        species: nil,
+        common_name: candidates.first[:common_name],
+        species: candidates.first[:species],
         family: calculate_agreed_family(results),
         confidence: :low,
         region_native: false,
         model_id: nil,
-        candidates: ranked_candidates(results)
+        candidates: candidates
       }
     end
 
-    # Rank disagreeing identifications by vote share across the consensus models.
+    # Rank disagreeing identifications by vote share across the consensus
+    # models. Ties break by consensus_models order (sort_by isn't stable).
     def ranked_candidates(results)
       results.group_by { |r| r.species&.strip&.downcase }
              .values
              .map { |group| vote_candidate(group, results.size) }
-             .sort_by { |candidate| -candidate[:score] }
+             .sort_by.with_index { |candidate, index| [-candidate[:score], index] }
     end
 
     def vote_candidate(group, total)
