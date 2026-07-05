@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    feather-ai (0.3.1)
+    feather-ai (0.4.0)
       ruby_llm (~> 1.0)
 
 GEM

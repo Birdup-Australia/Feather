@@ -9,7 +9,8 @@ RSpec.describe FeatherAi::Consensus do
       species: "Malurus splendens",
       family: "Maluridae",
       confidence: :high,
-      region_native: true
+      region_native: true,
+      candidates: [{ common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.9 }]
     )
   end
 
@@ -42,6 +43,11 @@ RSpec.describe FeatherAi::Consensus do
         result = consensus.identify("bird.jpg")
         expect(result.species).to eq("Malurus splendens")
       end
+
+      it "carries the primary result's ranked candidates" do
+        result = consensus.identify("bird.jpg")
+        expect(result.candidates).to eq(fairywren_result.candidates)
+      end
     end
 
     context "when models disagree on species" do
@@ -62,6 +68,14 @@ RSpec.describe FeatherAi::Consensus do
       it "includes both candidates" do
         result = consensus.identify("bird.jpg")
         expect(result.candidates.length).to eq(2)
+      end
+
+      it "returns candidates as vote-share hashes" do
+        result = consensus.identify("bird.jpg")
+        expect(result.candidates).to contain_exactly(
+          { common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.5 },
+          { common_name: "Australian Magpie", species: "Gymnorhina tibicen", score: 0.5 }
+        )
       end
 
       it "returns nil for species" do
@@ -112,6 +126,23 @@ RSpec.describe FeatherAi::Consensus do
       it "is still low confidence" do
         result = consensus.identify("bird.jpg")
         expect(result.confidence).to eq(:low)
+      end
+    end
+
+    context "with tools" do
+      let(:lookup_tool) { double("SpeciesLookupTool") } # rubocop:disable RSpec/VerifiedDoubles
+      let(:captured_tools) { [] }
+
+      before do
+        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify) do |_id, *_args, **kwargs| # rubocop:disable RSpec/AnyInstance
+          captured_tools << kwargs[:tools]
+          fairywren_result
+        end
+      end
+
+      it "forwards tools to each identifier" do
+        consensus.identify("bird.jpg", tools: [lookup_tool])
+        expect(captured_tools).to eq([[lookup_tool], [lookup_tool]])
       end
     end
 
