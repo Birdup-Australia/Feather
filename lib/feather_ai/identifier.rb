@@ -40,7 +40,7 @@ module FeatherAi
     def identify(image = nil, audio = nil, location: nil, tools: nil)
       images = normalize_images(image)
       validate_inputs!(images, audio)
-      run_identification(images, audio, location || @config.location, tools || @config.tools)
+      run_identification(images, audio, location || @config.location, Array(tools || @config.tools))
     end
 
     private

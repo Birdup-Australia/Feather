@@ -117,6 +117,18 @@ RSpec.describe FeatherAi::Identifier do
         expect(mock_chat).to have_received(:with_tools).with(lookup_tool)
       end
 
+      it "treats nil configured tools as no tools" do
+        config = FeatherAi::Configuration.new
+        config.tools = nil
+        described_class.new(config: config).identify("bird.jpg")
+        expect(mock_chat).not_to have_received(:with_tools)
+      end
+
+      it "wraps a bare tool passed without an array" do
+        identifier.identify("bird.jpg", tools: lookup_tool)
+        expect(mock_chat).to have_received(:with_tools).with(lookup_tool)
+      end
+
       it "mentions the lookup tools in the system prompt" do
         identifier.identify("bird.jpg", tools: [lookup_tool])
         expect(mock_chat).to have_received(:with_instructions).with(include("lookup tools"))
