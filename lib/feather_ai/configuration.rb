@@ -3,6 +3,8 @@
 module FeatherAi
   # Configuration object for FeatherAi gem settings.
   class Configuration
+    # provider: kept for backwards compatibility; RubyLLM 2 resolves the provider from the model.
+    # media_resolution: Gemini-only (generationConfig.mediaResolution); ignored for other providers.
     attr_accessor :provider, :model, :location, :consensus_models, :tips_model, :media_resolution, :tools
 
     def initialize

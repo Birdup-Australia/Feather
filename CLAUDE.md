@@ -42,13 +42,13 @@ bundle exec rake release
 
 ## Architecture
 
-The gem's only runtime dependency is `ruby_llm` (which pulls in `ruby_llm-schema`). All classes live under the `FeatherAi` module in `lib/feather_ai/`.
+The gem's only runtime dependency is `ruby_llm` 2.x (which pulls in `schematist` for the schema DSL). All classes live under the `FeatherAi` module in `lib/feather_ai/`.
 
 ### Data Flow
 
 `FeatherAi.identify(image, audio, location:, consensus:)` is the top-level entry point defined in `lib/feather_ai.rb`. `image` accepts a single path or an array of paths (multiple angles of the same bird). It delegates to:
 
-1. **Identifier** (`lib/feather_ai/identifier.rb`) — Core identification logic. Uses RubyLLM's vision for images and `RubyLLM.transcribe` for audio. When both inputs are provided, they're combined into a single multi-modal prompt. Uses `RubyLLM::Schema` for structured output (including a `reasoning` field that forces step-by-step visual analysis before the identification). Also computes a USD cost estimate from token counts via the hardcoded `PROVIDER_RATES` table.
+1. **Identifier** (`lib/feather_ai/identifier.rb`) — Core identification logic. Uses RubyLLM's vision for images and `RubyLLM.transcribe` for audio. When both inputs are provided, they're combined into a single multi-modal prompt. Uses `Schematist::Schema` for structured output (including a `reasoning` field that forces step-by-step visual analysis before the identification); the parsed Hash is read via `response.parsed`, tokens via `response.tokens`, and USD cost via `response.cost.total` (RubyLLM's pricing registry). `config.media_resolution` is only sent to Gemini models.
 
 2. **Consensus** (`lib/feather_ai/consensus.rb`) — When `consensus: true`, runs identification through the configured `consensus_models` in parallel threads. Agreement is compared on normalized species name. If they agree, returns `confident: true`; if they disagree, returns both as `candidates` with low confidence. Token counts, cost, and duration are summed across models.
 
@@ -73,7 +73,7 @@ FeatherAi.configure do |c|
   c.location         = "Perth, Western Australia"             # biases results to local species
   c.consensus_models = ["claude-sonnet-4", "claude-haiku-4"]  # default
   c.tips_model       = "claude-haiku-4"                       # default
-  c.media_resolution = :high                                  # default; image resolution sent to provider
+  c.media_resolution = :high                                  # default; Gemini-only image resolution
 end
 ```
 

@@ -16,7 +16,7 @@ RSpec.describe FeatherAi::PhotographyTips do
 
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
-    allow(mock_chat).to receive_messages(with_schema: mock_chat, ask: double(content: tips_response))
+    allow(mock_chat).to receive_messages(with_schema: mock_chat, ask: double(parsed: tips_response))
   end
 
   describe "#fetch" do

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "ruby_llm"
-require "ruby_llm/schema"
 
 require_relative "feather_ai/version"
 require_relative "feather_ai/configuration"

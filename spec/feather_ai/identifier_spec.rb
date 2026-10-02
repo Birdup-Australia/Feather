@@ -19,19 +19,18 @@ RSpec.describe FeatherAi::Identifier do
     }
   end
 
-  let(:mock_chat) { instance_double(RubyLLM::Chat) }
+  let(:mock_chat) { instance_double(RubyLLM::Chat, provider: double(slug: "anthropic")) }
+  let(:mock_response_message) do
+    double(parsed: mock_response, model: "claude-sonnet-4-6", tokens: double(input: 512, output: 64),
+           cost: double(total: 0.0025))
+  end
   let(:lookup_tool) { double("SpeciesLookupTool") } # rubocop:disable RSpec/VerifiedDoubles
 
   before do
     allow(RubyLLM).to receive(:chat).and_return(mock_chat)
     allow(mock_chat).to receive_messages(with_instructions: mock_chat, with_schema: mock_chat,
-                                         with_tools: mock_chat,
-                                         with_params: mock_chat, ask: double(
-                                           content: mock_response,
-                                           model_id: "claude-sonnet-4-6",
-                                           input_tokens: 512,
-                                           output_tokens: 64
-                                         ))
+                                         with_tools: mock_chat, with_provider_options: mock_chat,
+                                         ask: mock_response_message)
   end
 
   describe "#identify" do
@@ -94,8 +93,8 @@ RSpec.describe FeatherAi::Identifier do
 
     it "returns empty candidates when the response omits them" do
       allow(mock_chat).to receive(:ask)
-        .and_return(double(content: mock_response.except("candidates"), model_id: "m", input_tokens: 1,
-                           output_tokens: 1))
+        .and_return(double(parsed: mock_response.except("candidates"), model: "m",
+                           tokens: double(input: 1, output: 1), cost: double(total: nil)))
       expect(identifier.identify("bird.jpg").candidates).to eq([])
     end
 
@@ -153,27 +152,16 @@ RSpec.describe FeatherAi::Identifier do
       end
     end
 
-    it "computes a non-nil cost when token counts are present" do
+    it "passes through the cost RubyLLM computes" do
       result = identifier.identify("bird.jpg")
-      aggregate_failures do
-        expect(result.cost).to be_a(Float)
-        expect(result.cost).to be_positive
-      end
+      expect(result.cost).to eq(0.0025)
     end
 
-    it "returns nil cost when token counts are absent" do
-      allow(mock_chat).to receive(:ask).and_return(
-        double(content: mock_response, model_id: "claude-sonnet-4-6", input_tokens: nil, output_tokens: nil)
-      )
-      result = identifier.identify("bird.jpg")
-      expect(result.cost).to be_nil
-    end
-
-    it "returns nil cost for a non-anthropic provider" do
-      config = FeatherAi::Configuration.new
-      config.provider = :openai
-      result = described_class.new(config: config).identify("bird.jpg")
-      expect(result.cost).to be_nil
+    it "returns nil cost when RubyLLM has no pricing" do
+      unpriced = double(parsed: mock_response, model: "m", tokens: double(input: 1, output: 1),
+                        cost: double(total: nil))
+      allow(mock_chat).to receive(:ask).and_return(unpriced)
+      expect(identifier.identify("bird.jpg").cost).to be_nil
     end
 
     it "records duration_ms as a non-negative integer" do
@@ -190,13 +178,19 @@ RSpec.describe FeatherAi::Identifier do
     end
 
     it "sets source to :audio for audio-only input" do
-      allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
+      allow(RubyLLM).to receive(:transcribe).and_return(double(text: "chirp chirp"))
       result = identifier.identify(nil, "bird.mp3")
       expect(result.source).to eq(:audio)
     end
 
+    it "puts the transcript text into the prompt" do
+      allow(RubyLLM).to receive(:transcribe).and_return(double(text: "chirp chirp"))
+      identifier.identify(nil, "bird.mp3")
+      expect(mock_chat).to have_received(:ask).with(include("transcript: chirp chirp"), with: nil)
+    end
+
     it "sets source to :multimodal when both image and audio are provided" do
-      allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
+      allow(RubyLLM).to receive(:transcribe).and_return(double(text: "chirp chirp"))
       result = identifier.identify("bird.jpg", "bird.mp3")
       expect(result.source).to eq(:multimodal)
     end
@@ -211,27 +205,36 @@ RSpec.describe FeatherAi::Identifier do
       expect(result.reasoning).to include("cobalt-blue")
     end
 
-    it "passes media_resolution HIGH to RubyLLM by default" do
+    it "does not send Gemini media_resolution to non-Gemini providers" do
       identifier.identify("bird.jpg")
-      expect(mock_chat).to have_received(:with_params).with(
-        generationConfig: { mediaResolution: "MEDIA_RESOLUTION_HIGH" }
-      )
+      expect(mock_chat).not_to have_received(:with_provider_options)
     end
 
-    it "respects a custom media_resolution config" do # rubocop:disable RSpec/ExampleLength
-      config = FeatherAi::Configuration.new
-      config.media_resolution = :medium
-      described_class.new(config: config).identify("bird.jpg")
-      expect(mock_chat).to have_received(:with_params).with(
-        generationConfig: { mediaResolution: "MEDIA_RESOLUTION_MEDIUM" }
-      )
-    end
+    context "with a Gemini model" do
+      before { allow(mock_chat).to receive(:provider).and_return(double(slug: "gemini")) }
 
-    it "skips with_params when media_resolution is nil" do
-      config = FeatherAi::Configuration.new
-      config.media_resolution = nil
-      described_class.new(config: config).identify("bird.jpg")
-      expect(mock_chat).not_to have_received(:with_params)
+      it "passes media_resolution HIGH by default" do
+        identifier.identify("bird.jpg")
+        expect(mock_chat).to have_received(:with_provider_options).with(
+          generationConfig: { mediaResolution: "MEDIA_RESOLUTION_HIGH" }
+        )
+      end
+
+      it "respects a custom media_resolution config" do # rubocop:disable RSpec/ExampleLength
+        config = FeatherAi::Configuration.new
+        config.media_resolution = :medium
+        described_class.new(config: config).identify("bird.jpg")
+        expect(mock_chat).to have_received(:with_provider_options).with(
+          generationConfig: { mediaResolution: "MEDIA_RESOLUTION_MEDIUM" }
+        )
+      end
+
+      it "skips provider options when media_resolution is nil" do
+        config = FeatherAi::Configuration.new
+        config.media_resolution = nil
+        described_class.new(config: config).identify("bird.jpg")
+        expect(mock_chat).not_to have_received(:with_provider_options)
+      end
     end
 
     context "with multiple images" do
@@ -256,7 +259,7 @@ RSpec.describe FeatherAi::Identifier do
       end
 
       it "sets source to :multimodal for multiple images with audio" do
-        allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
+        allow(RubyLLM).to receive(:transcribe).and_return(double(text: "chirp chirp"))
         result = identifier.identify(%w[front.jpg side.jpg], "bird.mp3")
         expect(result.source).to eq(:multimodal)
       end
@@ -275,7 +278,7 @@ RSpec.describe FeatherAi::Identifier do
       end
 
       it "uses a multimodal prompt when multiple images and audio are provided" do
-        allow(RubyLLM).to receive(:transcribe).and_return("chirp chirp")
+        allow(RubyLLM).to receive(:transcribe).and_return(double(text: "chirp chirp"))
         identifier.identify(%w[front.jpg side.jpg], "bird.mp3")
         expect(mock_chat).to have_received(:ask).with(include("images and heard in the audio"), with: anything)
       end
