@@ -3,7 +3,7 @@
 module FeatherAi
   # Generates photography tips for identified bird species.
   class PhotographyTips
-    SCHEMA = RubyLLM::Schema.create do
+    SCHEMA = Schematist::Schema.create do
       string :time_of_day, description: "Best time of day to photograph this species"
       string :approach, description: "How to approach without disturbing the bird"
       string :settings, description: "Recommended camera settings (shutter speed, aperture, ISO)"
@@ -32,7 +32,7 @@ module FeatherAi
     def fetch_from_llm
       chat = RubyLLM.chat(model: @config.tips_model)
       chat.with_schema(SCHEMA)
-      chat.ask(prompt).content
+      chat.ask(prompt).parsed
     end
 
     def build_tips_hash(parsed)

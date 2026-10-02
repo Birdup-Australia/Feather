@@ -2,9 +2,9 @@
 
 module FeatherAi
   # Core bird identification using LLM vision and audio transcription.
-  # rubocop:disable Metrics/ClassLength
+  # rubocop:disable-next Metrics/ClassLength
   class Identifier
-    SCHEMA = RubyLLM::Schema.create do
+    SCHEMA = Schematist::Schema.create do
       string :reasoning,
              description: "Step-by-step visual analysis: describe body size, bill shape, " \
                           "plumage, markings, and rule out similar species before identifying"
@@ -23,12 +23,6 @@ module FeatherAi
         end
       end
     end
-
-    # Approximate mid-2025 rates (USD per 1M tokens).
-    # Use your provider's dashboard for billing accuracy — these are estimates.
-    PROVIDER_RATES = {
-      anthropic: { input: 3.00, output: 15.00 }
-    }.freeze
 
     def initialize(config: FeatherAi.configuration)
       @config = config
@@ -99,21 +93,20 @@ module FeatherAi
       chat.with_instructions(system_prompt(location, tools))
       chat.with_schema(SCHEMA)
       chat.with_tools(*tools) if tools.any?
-      chat.with_params(**generation_params) if generation_params.any?
+      apply_media_resolution(chat)
       chat
     end
 
-    def generation_params
-      params = {}
-      if @config.media_resolution
-        resolution = "MEDIA_RESOLUTION_#{@config.media_resolution.to_s.upcase}"
-        params[:generationConfig] = { mediaResolution: resolution }
-      end
-      params
+    # generationConfig.mediaResolution is a Gemini request field; other providers reject unknown keys.
+    def apply_media_resolution(chat)
+      return unless @config.media_resolution && chat.provider.slug == "gemini"
+
+      resolution = "MEDIA_RESOLUTION_#{@config.media_resolution.to_s.upcase}"
+      chat.with_provider_options(generationConfig: { mediaResolution: resolution })
     end
 
     def build_result(response, duration_ms, source)
-      parsed = response.content
+      parsed = response.parsed
       Result.new(
         **parsed_identification_attrs(parsed),
         **response_observability_attrs(response, duration_ms, source)
@@ -145,10 +138,10 @@ module FeatherAi
 
     def response_observability_attrs(response, duration_ms, source)
       {
-        model_id: response.model_id,
-        input_tokens: response.input_tokens,
-        output_tokens: response.output_tokens,
-        cost: compute_cost(response.input_tokens, response.output_tokens),
+        model_id: response.model,
+        input_tokens: response.tokens.input,
+        output_tokens: response.tokens.output,
+        cost: response.cost.total,
         duration_ms: duration_ms,
         source: source
       }
@@ -172,17 +165,6 @@ module FeatherAi
       else
         :audio
       end
-    end
-
-    # Returns a USD cost estimate based on token counts, or nil when the count
-    # is unavailable or the configured provider has no rate table defined here.
-    def compute_cost(input_tokens, output_tokens)
-      return nil if input_tokens.nil? || output_tokens.nil?
-
-      rates = PROVIDER_RATES[@config.provider]
-      return nil if rates.nil?
-
-      ((input_tokens * rates[:input]) + (output_tokens * rates[:output])) / 1_000_000.0
     end
 
     def system_prompt(location, tools = [])
@@ -214,7 +196,7 @@ module FeatherAi
     def build_text_prompt(images, audio)
       parts = []
       if audio
-        transcript = RubyLLM.transcribe(audio)
+        transcript = RubyLLM.transcribe(audio).text
         parts << "Bird call/song transcript: #{transcript}"
       end
       parts << identification_prompt(images.size, has_audio: !audio.nil?)
@@ -231,5 +213,4 @@ module FeatherAi
       end
     end
   end
-  # rubocop:enable Metrics/ClassLength
 end

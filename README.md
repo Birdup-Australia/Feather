@@ -22,17 +22,17 @@ gem install feather-ai
 
 ```ruby
 FeatherAi.configure do |c|
-  c.provider         = :anthropic           # Default: :anthropic
+  c.provider         = :anthropic           # Deprecated no-op; RubyLLM 2 resolves the provider from the model
   c.model            = "claude-sonnet-4-5"  # Default: "claude-sonnet-4-5"
   c.location         = "Perth, WA"          # Optional: biases results to local species
   c.consensus_models = ["claude-sonnet-4-5", "claude-haiku-4-5"]  # Models used in consensus mode
   c.tips_model       = "claude-haiku-4-5"   # Model for photography tips (default)
-  c.media_resolution = :high                # Image resolution sent to provider (default)
+  c.media_resolution = :high                # Gemini only (generationConfig.mediaResolution); ignored elsewhere
   c.tools            = []                   # RubyLLM tools available to every identification (default: none)
 end
 ```
 
-RubyLLM must be configured with your provider credentials before using FeatherAi. See the [RubyLLM docs](https://github.com/coelacanth/ruby_llm) for setup.
+Requires RubyLLM 2.x. RubyLLM must be configured with your provider credentials before using FeatherAi. See the [RubyLLM docs](https://rubyllm.com) for setup.
 
 ## Usage
 
@@ -100,7 +100,7 @@ Pass RubyLLM tools so the model can verify its identification against real data 
 ```ruby
 class SpeciesLookupTool < RubyLLM::Tool
   description "Looks up whether a species occurs in a region"
-  param :species, desc: "Scientific species name"
+  parameter :species, description: "Scientific species name"
 
   def execute(species:)
     Species.find_by(scientific_name: species)&.slice(:regions, :description) || { found: false }
@@ -172,7 +172,7 @@ Every result also carries observability data from the LLM call:
 | `model_id` | String | Model that produced the identification |
 | `input_tokens` | Integer | Tokens sent to the model |
 | `output_tokens` | Integer | Tokens received from the model |
-| `cost` | Float | Estimated USD cost (based on built-in rate tables, or `nil`) |
+| `cost` | Float | USD cost from RubyLLM's model pricing registry, or `nil` when unknown |
 | `duration_ms` | Integer | Wall-clock time of the LLM call in milliseconds |
 | `source` | Symbol | `:vision`, `:audio`, or `:multimodal` |
 | `consensus_models` | Array | Models used when consensus mode was enabled |
@@ -303,8 +303,7 @@ after { FeatherAi.reset! }
 ```ruby
 # In an initialiser or boot file — before any threads are created
 FeatherAi.configure do |c|
-  c.provider = :anthropic
-  c.model    = "claude-sonnet-4"
+  c.model = "claude-sonnet-4-5"
 end
 ```
 

@@ -2,7 +2,7 @@
 
 module FeatherAi
   # Multi-model consensus identification to improve accuracy.
-  # rubocop:disable Metrics/ClassLength
+  # rubocop:disable-next Metrics/ClassLength
   class Consensus
     def initialize(config: FeatherAi.configuration)
       @config = config
@@ -138,5 +138,4 @@ module FeatherAi
       dup_config
     end
   end
-  # rubocop:enable Metrics/ClassLength
 end
