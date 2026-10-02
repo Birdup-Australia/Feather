@@ -8,8 +8,10 @@ gemspec
 gem "irb"
 gem "rake", "~> 13.0"
 
-# marcel 2.x requires Ruby >= 3.3; keep the lockfile installable on the 3.2 CI job
+# These transitive gems dropped Ruby 3.2 in their latest majors; keep the lockfile installable on the 3.2 CI job
 gem "marcel", "< 2"
+gem "parallel", "< 2"
+gem "rbs", "< 4"
 
 gem "rspec", "~> 3.0"
 gem "rubocop", "~> 1.21"
