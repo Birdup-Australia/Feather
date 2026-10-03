@@ -24,6 +24,14 @@ RSpec.describe FeatherAi::Consensus do
     )
   end
 
+  # Identifiers run in parallel threads, so stub by model — call order isn't model order.
+  def stub_identifications(*results)
+    identifiers = FeatherAi.configuration.consensus_models.zip(results).to_h do |model, result|
+      [model, instance_double(FeatherAi::Identifier, identify: result)]
+    end
+    allow(FeatherAi::Identifier).to receive(:new) { |config:| identifiers.fetch(config.model) }
+  end
+
   describe "#identify" do
     context "when models agree on species" do
       before do
@@ -51,14 +59,7 @@ RSpec.describe FeatherAi::Consensus do
     end
 
     context "when models disagree on species" do
-      let(:results) { [fairywren_result, magpie_result] }
-
-      before do
-        call_count = 0
-        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
-          results[call_count].tap { call_count += 1 }
-        end
-      end
+      before { stub_identifications(fairywren_result, magpie_result) }
 
       it "returns a low-confidence Result" do
         result = consensus.identify("bird.jpg")
@@ -110,13 +111,7 @@ RSpec.describe FeatherAi::Consensus do
         )
       end
 
-      before do
-        call_count = 0
-        results = [splendid, variegated]
-        allow_any_instance_of(FeatherAi::Identifier).to receive(:identify) do # rubocop:disable RSpec/AnyInstance
-          results[call_count].tap { call_count += 1 }
-        end
-      end
+      before { stub_identifications(splendid, variegated) }
 
       it "sets family to the agreed family" do
         result = consensus.identify("bird.jpg")
