@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-11-24
+
+- **Breaking:** default `model` (and the first of `consensus_models`) is now `claude-sonnet-5-5`. Anthropic retires `claude-sonnet-4-5` on 2026-11-30, after which the old default stops working. `tips_model` stays on `claude-haiku-4-5`.
+- **Breaking:** requires `ruby_llm` >= 2.1 (the first release whose model registry knows `claude-sonnet-5-5`).
+- **Breaking:** requires Ruby >= 3.3 (3.2 is end-of-life). CI now tests 3.3, 3.4 and 4.0.
+- Removed the stale `sig/Feather.rbs` signatures, which described a `Feather` module that no longer exists.
+
 ## 0.5.0 - 2026-10-02
 
 - **Breaking:** requires `ruby_llm` 2.x (fixes the ReDoS advisory in 1.x). Dev dependencies updated to clear all `bundle-audit` findings (rubocop no longer pulls in `mcp`).

@@ -23,9 +23,9 @@ gem install feather-ai
 ```ruby
 FeatherAi.configure do |c|
   c.provider         = :anthropic           # Deprecated no-op; RubyLLM 2 resolves the provider from the model
-  c.model            = "claude-sonnet-4-5"  # Default: "claude-sonnet-4-5"
+  c.model            = "claude-sonnet-5-5"  # Default: "claude-sonnet-5-5"
   c.location         = "Perth, WA"          # Optional: biases results to local species
-  c.consensus_models = ["claude-sonnet-4-5", "claude-haiku-4-5"]  # Models used in consensus mode
+  c.consensus_models = ["claude-sonnet-5-5", "claude-haiku-4-5"]  # Models used in consensus mode
   c.tips_model       = "claude-haiku-4-5"   # Model for photography tips (default)
   c.media_resolution = :high                # Gemini only (generationConfig.mediaResolution); ignored elsewhere
   c.tools            = []                   # RubyLLM tools available to every identification (default: none)
@@ -131,7 +131,7 @@ Consensus models are configurable:
 
 ```ruby
 FeatherAi.configure do |c|
-  c.consensus_models = ["claude-sonnet-4-5", "claude-haiku-4-5"]
+  c.consensus_models = ["claude-sonnet-5-5", "claude-haiku-4-5"]
 end
 ```
 
@@ -303,7 +303,7 @@ after { FeatherAi.reset! }
 ```ruby
 # In an initialiser or boot file — before any threads are created
 FeatherAi.configure do |c|
-  c.model = "claude-sonnet-4-5"
+  c.model = "claude-sonnet-5-5"
 end
 ```
 

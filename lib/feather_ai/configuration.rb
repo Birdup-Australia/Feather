@@ -9,9 +9,9 @@ module FeatherAi
 
     def initialize
       @provider = :anthropic
-      @model = "claude-sonnet-4-5"
+      @model = "claude-sonnet-5-5"
       @location = nil
-      @consensus_models = %w[claude-sonnet-4-5 claude-haiku-4-5]
+      @consensus_models = %w[claude-sonnet-5-5 claude-haiku-4-5]
       @tips_model = "claude-haiku-4-5"
       @media_resolution = :high
       @tools = []

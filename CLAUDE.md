@@ -68,12 +68,12 @@ All errors inherit from `FeatherAi::Error`: `ConfigurationError` (e.g. no image 
 
 ```ruby
 FeatherAi.configure do |c|
-  c.provider         = :anthropic                             # default
-  c.model            = "claude-sonnet-4"                      # default
-  c.location         = "Perth, Western Australia"             # biases results to local species
-  c.consensus_models = ["claude-sonnet-4", "claude-haiku-4"]  # default
-  c.tips_model       = "claude-haiku-4"                       # default
-  c.media_resolution = :high                                  # default; Gemini-only image resolution
+  c.provider         = :anthropic                                 # default
+  c.model            = "claude-sonnet-5-5"                        # default
+  c.location         = "Perth, Western Australia"                 # biases results to local species
+  c.consensus_models = ["claude-sonnet-5-5", "claude-haiku-4-5"]  # default
+  c.tips_model       = "claude-haiku-4-5"                         # default
+  c.media_resolution = :high                                      # default; Gemini-only image resolution
 end
 ```
 
@@ -92,7 +92,7 @@ Generators: `rails generate feather_ai:install [model_name]` scaffolds the ident
 
 - Double quotes for all strings (configured in `.rubocop.yml`)
 - `frozen_string_literal: true` in every Ruby file
-- Target Ruby version: >= 3.2 (gemspec requires it; CI tests 3.2, 3.3, 3.4)
+- Target Ruby version: >= 3.3 (gemspec requires it; CI tests 3.3, 3.4, 4.0)
 - RSpec with `expect` syntax only (monkey patching disabled)
 
 ## Testing
