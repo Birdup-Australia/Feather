@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0 - 2026-11-24
+
+- `Result#field_marks`: up to four `{ category:, summary: }` hashes giving the evidence for the identification in plain language, one per category (`FeatherAi::Identifier::FIELD_MARK_CATEGORIES`). Written for the person who took the photo, unlike `reasoning`, which stays the model's working.
+- Each entry in `candidates` now carries a `note:` — one sentence on what separates that alternative from the identification (`nil` for the first entry and for vote-share candidates on consensus disagreement).
+- Consensus: when the models agree, the result now carries the primary model's `reasoning` (previously dropped) and `field_marks`. On disagreement `field_marks` is empty.
+- Rails: `identify!` persists `field_marks` when the model has that column, and the install generator adds it (jsonb). Existing apps need their own migration to store it.
+
 ## 0.6.0 - 2026-11-24
 
 - **Breaking:** default `model` (and the first of `consensus_models`) is now `claude-sonnet-5-5`. Anthropic retires `claude-sonnet-4-5` on 2026-11-30, after which the old default stops working. `tips_model` stays on `claude-haiku-4-5`.

@@ -148,6 +148,7 @@ RSpec.describe FeatherAi::Rails::ActsAsSighting do
         family: "Artamidae",
         confidence: "high",
         region_native: true,
+        field_marks: [{ category: "plumage", summary: "Black and white, with a white nape." }],
         candidates: [{ common_name: "Australian Magpie", species: "Gymnorhina tibicen", score: 0.9 }]
       )
     end
@@ -259,6 +260,14 @@ RSpec.describe FeatherAi::Rails::ActsAsSighting do
         record.identify!
         expect(record.candidates).to eq(mock_result.candidates)
       end
+    end
+
+    it "persists field marks when the record has a field_marks column" do
+      record = Class.new(sighting_with_photo_class) { attr_accessor :field_marks }.new
+      allow(record).to receive(:photo)
+        .and_return(instance_double("ActiveStorage::Attached::One", download: mock_photo_file)) # rubocop:disable RSpec/VerifiedDoubleReference
+      record.identify!
+      expect(record.field_marks).to eq(mock_result.field_marks)
     end
   end
 

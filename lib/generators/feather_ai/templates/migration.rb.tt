@@ -6,5 +6,6 @@ class AddFeatherAiFieldsTo<%= model_name.camelize.pluralize %> < ActiveRecord::M
     add_column :<%= model_name.underscore.pluralize %>, :confidence, :string
     add_column :<%= model_name.underscore.pluralize %>, :region_native, :boolean
     add_column :<%= model_name.underscore.pluralize %>, :candidates, :jsonb
+    add_column :<%= model_name.underscore.pluralize %>, :field_marks, :jsonb
   end
 end

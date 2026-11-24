@@ -157,6 +157,17 @@ RSpec.describe FeatherAi::Result do
     end
   end
 
+  describe "#field_marks" do
+    it "defaults to an empty array" do
+      expect(result.field_marks).to eq([])
+    end
+
+    it "is included in to_h" do
+      marks = [{ category: "plumage", summary: "Cobalt-blue head." }]
+      expect(described_class.new(attrs.merge(field_marks: marks)).to_h[:field_marks]).to eq(marks)
+    end
+  end
+
   describe "#to_h" do
     it "returns a plain hash" do
       expect(result.to_h).to be_a(Hash)

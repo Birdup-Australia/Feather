@@ -12,9 +12,14 @@ RSpec.describe FeatherAi::Identifier do
       "family" => "Maluridae",
       "confidence" => "high",
       "region_native" => true,
+      "field_marks" => [
+        { "category" => "plumage", "summary" => "Cobalt-blue head, back and tail." },
+        { "category" => "size_and_shape", "summary" => "Tiny, with a long cocked tail." }
+      ],
       "candidates" => [
-        { "common_name" => "Splendid Fairywren", "species" => "Malurus splendens", "score" => 0.9 },
-        { "common_name" => "Superb Fairywren", "species" => "Malurus cyaneus", "score" => 0.1 }
+        { "common_name" => "Splendid Fairywren", "species" => "Malurus splendens", "score" => 0.9, "note" => "" },
+        { "common_name" => "Superb Fairywren", "species" => "Malurus cyaneus", "score" => 0.1,
+          "note" => "Similar, but its belly is pale rather than blue." }
       ]
     }
   end
@@ -86,9 +91,44 @@ RSpec.describe FeatherAi::Identifier do
     end
 
     it "parses ranked candidates into symbol-keyed hashes" do
-      top = { common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.9 }
-      runner_up = { common_name: "Superb Fairywren", species: "Malurus cyaneus", score: 0.1 }
+      top = { common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.9, note: nil }
+      runner_up = { common_name: "Superb Fairywren", species: "Malurus cyaneus", score: 0.1,
+                    note: "Similar, but its belly is pale rather than blue." }
       expect(identifier.identify("bird.jpg").candidates).to eq([top, runner_up])
+    end
+
+    it "parses field marks into symbol-keyed hashes" do
+      expect(identifier.identify("bird.jpg").field_marks).to eq(
+        [{ category: "plumage", summary: "Cobalt-blue head, back and tail." },
+         { category: "size_and_shape", summary: "Tiny, with a long cocked tail." }]
+      )
+    end
+
+    it "keeps only the first field mark per category" do # rubocop:disable RSpec/ExampleLength
+      repeated = mock_response.merge("field_marks" => [
+                                       { "category" => "plumage", "summary" => "Cobalt-blue head." },
+                                       { "category" => "plumage", "summary" => "Black breast-band." }
+                                     ])
+      allow(mock_chat).to receive(:ask)
+        .and_return(double(parsed: repeated, model: "m", tokens: double(input: 1, output: 1), cost: double(total: nil)))
+      expect(identifier.identify("bird.jpg").field_marks).to eq([{ category: "plumage", summary: "Cobalt-blue head." }])
+    end
+
+    it "returns empty field marks when the response omits them" do
+      allow(mock_chat).to receive(:ask)
+        .and_return(double(parsed: mock_response.except("field_marks"), model: "m",
+                           tokens: double(input: 1, output: 1), cost: double(total: nil)))
+      expect(identifier.identify("bird.jpg").field_marks).to eq([])
+    end
+
+    it "limits field mark categories in the schema to FIELD_MARK_CATEGORIES" do
+      items = described_class::SCHEMA.new.to_json_schema.dig("properties", "field_marks", "items")
+      expect(items.dig("properties", "category", "enum")).to eq(described_class::FIELD_MARK_CATEGORIES)
+    end
+
+    it "asks for a note on each candidate in the schema" do
+      items = described_class::SCHEMA.new.to_json_schema.dig("properties", "candidates", "items")
+      expect(items["properties"]).to include("note")
     end
 
     it "returns empty candidates when the response omits them" do
