@@ -3,7 +3,7 @@
 module FeatherAi
   # Immutable value object wrapping all identification output.
   class Result
-    attr_reader :common_name, :species, :family, :confidence, :region_native, :reasoning, :candidates,
+    attr_reader :common_name, :species, :family, :confidence, :region_native, :reasoning, :candidates, :field_marks,
                 :input_tokens, :output_tokens, :cost, :model_id, :duration_ms, :source,
                 :consensus_models
 
@@ -44,6 +44,7 @@ module FeatherAi
       @region_native = attrs[:region_native]
       @reasoning = attrs[:reasoning]
       @candidates = attrs[:candidates] || []
+      @field_marks = attrs[:field_marks] || []
     end
 
     def assign_photography_attrs(attrs)
@@ -71,6 +72,7 @@ module FeatherAi
         confidence: @confidence,
         confident: confident?,
         region_native: region_native?,
+        field_marks: @field_marks,
         candidates: @candidates
       }
     end

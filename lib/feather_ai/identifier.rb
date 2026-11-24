@@ -4,7 +4,9 @@ module FeatherAi
   # Core bird identification using LLM vision and audio transcription.
   # rubocop:disable-next Metrics/ClassLength
   class Identifier
-    SCHEMA = Schematist::Schema.create do
+    FIELD_MARK_CATEGORIES = %w[plumage size_and_shape behaviour habitat flight voice].freeze
+
+    SCHEMA = Schematist::Schema.create do # rubocop:disable Metrics/BlockLength
       string :reasoning,
              description: "Step-by-step visual analysis: describe body size, bill shape, " \
                           "plumage, markings, and rule out similar species before identifying"
@@ -13,6 +15,16 @@ module FeatherAi
       string :family, description: "Bird family name"
       string :confidence, description: "Identification confidence: high, medium, or low"
       boolean :region_native, description: "Whether this species is native to the given region"
+      array :field_marks, max_items: 4,
+                          description: "The evidence for your identification, for the person who took the photo: " \
+                                       "each category may appear only once, most diagnostic first, " \
+                                       "only what you actually observed" do
+        object do
+          string :category, enum: FIELD_MARK_CATEGORIES
+          string :summary, description: "One sentence of at most 15 words in everyday English that a beginner " \
+                                        "can check against the photo; no technical terms"
+        end
+      end
       array :candidates, min_items: 1, max_items: 3,
                          description: "Candidate species ranked most to least likely; " \
                                       "the first entry must match your identification" do
@@ -20,6 +32,8 @@ module FeatherAi
           string :common_name, description: "Common name of the candidate"
           string :species, description: "Scientific species name (Genus species)"
           number :score, minimum: 0, maximum: 1, description: "Relative likelihood of this candidate"
+          string :note, description: "One sentence of at most 15 words in everyday English on what separates " \
+                                     "this candidate from your identification; empty string for the first entry"
         end
       end
     end
@@ -121,17 +135,25 @@ module FeatherAi
         family: parsed["family"],
         confidence: parsed["confidence"],
         region_native: parsed["region_native"],
+        field_marks: normalize_field_marks(parsed["field_marks"]),
         candidates: normalize_candidates(parsed["candidates"]),
         photography_tips_loader: tips_loader(parsed)
       }
     end
 
+    def normalize_field_marks(field_marks)
+      Array(field_marks).map { |mark| { category: mark["category"], summary: mark["summary"] } }
+                        .uniq { |mark| mark[:category] }
+    end
+
     def normalize_candidates(candidates)
       Array(candidates).map do |candidate|
+        note = candidate["note"].to_s.strip
         {
           common_name: candidate["common_name"],
           species: candidate["species"],
-          score: candidate["score"]
+          score: candidate["score"],
+          note: note.empty? ? nil : note
         }
       end
     end

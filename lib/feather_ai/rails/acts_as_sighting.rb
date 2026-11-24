@@ -41,6 +41,7 @@ module FeatherAi
             region_native: result.region_native?
           }
           attrs[:candidates] = result.candidates if has_attribute?("candidates")
+          attrs[:field_marks] = result.field_marks if has_attribute?("field_marks")
           update!(attrs)
         end
 

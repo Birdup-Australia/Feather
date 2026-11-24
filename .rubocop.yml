@@ -10,3 +10,8 @@ Style/StringLiterals:
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
+
+# Methods that only build a hash of result attributes are data, not logic.
+Metrics/MethodLength:
+  CountAsOne:
+    - hash

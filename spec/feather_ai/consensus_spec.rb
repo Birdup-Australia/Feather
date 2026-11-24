@@ -10,6 +10,8 @@ RSpec.describe FeatherAi::Consensus do
       family: "Maluridae",
       confidence: :high,
       region_native: true,
+      reasoning: "Cobalt-blue all over with a black breast-band.",
+      field_marks: [{ category: "plumage", summary: "Cobalt-blue head, back and tail." }],
       candidates: [{ common_name: "Splendid Fairywren", species: "Malurus splendens", score: 0.9 }]
     )
   end
@@ -56,6 +58,14 @@ RSpec.describe FeatherAi::Consensus do
         result = consensus.identify("bird.jpg")
         expect(result.candidates).to eq(fairywren_result.candidates)
       end
+
+      it "carries the primary result's reasoning" do
+        expect(consensus.identify("bird.jpg").reasoning).to eq(fairywren_result.reasoning)
+      end
+
+      it "carries the primary result's field marks" do
+        expect(consensus.identify("bird.jpg").field_marks).to eq(fairywren_result.field_marks)
+      end
     end
 
     context "when models disagree on species" do
@@ -82,6 +92,10 @@ RSpec.describe FeatherAi::Consensus do
       it "promotes the top-ranked candidate to the primary identification (ties break in consensus_models order)" do
         result = consensus.identify("bird.jpg")
         expect(result).to have_attributes(species: "Malurus splendens", common_name: "Splendid Fairywren")
+      end
+
+      it "returns no field marks, as no single explanation was agreed" do
+        expect(consensus.identify("bird.jpg").field_marks).to eq([])
       end
 
       it "returns nil for family when families also differ" do

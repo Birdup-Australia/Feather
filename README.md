@@ -160,7 +160,8 @@ All identification calls return a `FeatherAi::Result`:
 | `confidence` | Symbol | `:high`, `:medium`, or `:low` |
 | `confident?` | Boolean | `true` when confidence is `:high` |
 | `region_native?` | Boolean | Whether species is native to the given region |
-| `candidates` | Array | Ranked candidate hashes (`common_name`, `species`, `score`); vote-share ranked on consensus disagreement |
+| `field_marks` | Array | Up to four `{ category:, summary: }` hashes: the evidence for the identification in plain language, one per category (`plumage`, `size_and_shape`, `behaviour`, `habitat`, `flight`, `voice`) |
+| `candidates` | Array | Ranked candidate hashes (`common_name`, `species`, `score`, `note`); `note` says what separates an alternative from the identification. Vote-share ranked, without notes, on consensus disagreement |
 | `photography_tips` | Hash | Lazy-loaded shooting advice |
 | `to_h` | Hash | All fields as a plain hash |
 
@@ -206,7 +207,7 @@ class Sighting < ApplicationRecord
 end
 ```
 
-The generator adds these columns to the model's table: `common_name`, `species`, `family`, `confidence`, `region_native`, `candidates` (jsonb). On existing tables, `identify!` persists ranked candidates only when a `candidates` column is present — add one in your own migration or skip it.
+The generator adds these columns to the model's table: `common_name`, `species`, `family`, `confidence`, `region_native`, `candidates` (jsonb), `field_marks` (jsonb). On existing tables, `identify!` persists ranked candidates and field marks only when a `candidates` / `field_marks` column is present — add them in your own migration or skip them.
 
 ### Identifying Records
 

@@ -69,6 +69,8 @@ module FeatherAi
         confidence: :high,
         region_native: primary.region_native?,
         model_id: primary.model_id,
+        reasoning: primary.reasoning,
+        field_marks: primary.field_marks,
         candidates: primary.candidates,
         photography_tips_loader: tips_loader_for(primary)
       }
