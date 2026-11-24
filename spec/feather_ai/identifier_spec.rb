@@ -104,7 +104,7 @@ RSpec.describe FeatherAi::Identifier do
       )
     end
 
-    it "keeps only the first field mark per category" do
+    it "keeps only the first field mark per category" do # rubocop:disable RSpec/ExampleLength
       repeated = mock_response.merge("field_marks" => [
                                        { "category" => "plumage", "summary" => "Cobalt-blue head." },
                                        { "category" => "plumage", "summary" => "Black breast-band." }
